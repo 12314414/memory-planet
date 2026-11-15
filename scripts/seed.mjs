@@ -11,7 +11,7 @@ const DEMO = [
     nickname: '星野',
     planetName: '慢慢星球',
     theme: 'honey',
-    visibility: 'PUBLIC',
+    visibility: 'INVITE',
     inviteCode: 'ABC123',
     pet: { name: '奶糖', species: 'rabbit', persona: '一只毛茸茸的兔子，喜欢在回忆里打滚，很会安慰人' },
     memories: [

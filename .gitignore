@@ -7,3 +7,7 @@ out
 .DS_Store
 next-env.d.ts
 tsconfig.tsbuildinfo
+prisma/schema.postgres.generated.prisma
+
+.vercel
+.env*

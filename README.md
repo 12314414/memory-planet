@@ -41,6 +41,29 @@ npm run dev
 
 重置数据库：`npm run db:reset`。
 
+### 公网部署（GitHub + Vercel + Neon）
+
+- 代码仓库：<https://github.com/12314414/memory-planet>
+- Vercel 项目：`my-team-c72b/memory-planet`（已连接上面的 GitHub 仓库，push 即自动部署）
+- 数据库：Vercel Marketplace 的 **Neon Postgres**，连接串由集成自动注入 `DATABASE_URL`
+
+生产构建走 `vercel-build`（`scripts/vercel-build.mjs`），本地 SQLite 流程完全不受影响：
+
+1. 读取 `prisma/schema.prisma`，把 `sqlite` 替换为 `postgresql` 生成构建期 schema（该文件已 gitignore）
+2. `prisma generate` + `prisma db push` 对 Neon 建表
+3. 若设置 `SEED_DEMO=1`，运行幂等的演示数据脚本
+4. `next build`
+
+需要在 Vercel 项目里配置的环境变量：
+
+| 变量 | 用途 |
+| --- | --- |
+| `DATABASE_URL` | Neon 连接串（集成自动写入，无需手动） |
+| `AI_BASE_URL` / `AI_MODEL` / `AI_API_KEY` | AI 代理配置，留空则全程模板降级 |
+
+> Vercel 的 Serverless 文件系统只读，因此公网环境必须用托管 Postgres；本地 `npm run dev` 仍用 SQLite。
+
+
 ### AI 配置（服务端）
 
 `.env` 中的三项即可切换服务商，接口均为 OpenAI 兼容格式：
