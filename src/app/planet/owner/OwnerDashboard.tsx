@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AccessControlSheet from '@/components/AccessControlSheet';
 import InviteCard from '@/components/InviteCard';
-import PetAvatarStudio from '@/components/PetAvatarStudio';
 import PlanetScene from '@/components/PlanetScene';
 import { apiFetch } from '@/lib/api-client';
 import { ACTION_ICON, ACTION_LABEL, VISIBILITY_LABEL, type Visibility } from '@/lib/constants';
@@ -42,14 +41,8 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
   const [briefLoading, setBriefLoading] = useState(false);
   const [polling, setPolling] = useState(true);
   const [error, setError] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState(initial.pet.avatar?.imageUrl);
   const timer = useRef<number | null>(null);
   const briefLoaded = useRef(false);
-
-  // 合并宠物档案与实时生成的 Q 版形象
-  const petWithAvatar = avatarUrl
-    ? { ...initial.pet, avatar: { imageUrl: avatarUrl } }
-    : initial.pet;
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -173,7 +166,7 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
         <section className="card relative overflow-hidden px-4 pb-16 pt-6">
-          <PlanetScene mode="owner" planet={initial} petProfile={petWithAvatar} />
+          <PlanetScene mode="owner" planet={initial} petProfile={initial.pet} />
           <div className="absolute left-4 top-4">
             <span className="chip">主星球 001</span>
           </div>
@@ -240,21 +233,6 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
                 AI 不可用时不会阻塞页面，会退回到数据模板。
               </p>
             )}
-          </section>
-
-          {/* 宠物形象：拍照生成 2.5D Q 版 */}
-          <section className="card p-5 sm:p-6">
-            <div className="mb-4 flex items-end justify-between">
-              <div>
-                <p className="eyebrow">PET AVATAR</p>
-                <h2 className="title mt-1.5 text-xl">宠物形象</h2>
-              </div>
-              <span className="text-[10px] text-[#b09ec0]">拍照生成 2.5D Q 版</span>
-            </div>
-            <PetAvatarStudio
-              initialAvatar={initial.pet.avatar}
-              onSaved={(url) => setAvatarUrl(url)}
-            />
           </section>
         </div>
       </div>

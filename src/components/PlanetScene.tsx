@@ -23,7 +23,6 @@ type PlanetSceneProps = {
 export default function PlanetScene({ mode, planet, petProfile, onAction }: PlanetSceneProps) {
   const theme = getTheme(planet.theme);
   const interactive = mode === 'visitor' && Boolean(onAction);
-  const avatarUrl = petProfile?.avatar?.imageUrl;
 
   return (
     <div className="planet-scene select-none">
@@ -57,31 +56,17 @@ export default function PlanetScene({ mode, planet, petProfile, onAction }: Plan
         role={interactive ? 'button' : undefined}
         aria-label={interactive ? `投喂${petProfile.name}` : petProfile.name}
       >
-        {avatarUrl ? (
-          /* 已生成 Q 版形象：优先显示 */
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt={petProfile.name}
-            className="h-full w-full object-contain"
-            style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))' }}
-          />
-        ) : (
-          /* 未生成 / 生成失败：回退到原有 CSS 占位图 */
-          <>
-            <span className="pet-tail" style={{ ['--pet-ear' as string]: '#fff8fc' }} />
-            <span className="pet-ear left" style={{ ['--pet-ear' as string]: '#ffe6f1' }} />
-            <span className="pet-ear right" style={{ ['--pet-ear' as string]: '#ffe6f1' }} />
-            <span className="pet-body" style={{ background: theme.pet }}>
-              <span className="pet-eye left" />
-              <span className="pet-eye right" />
-              <span className="pet-cheek left" />
-              <span className="pet-cheek right" />
-              <span className="pet-mouth" />
-            </span>
-            <span className="pet-crown">✦</span>
-          </>
-        )}
+        <span className="pet-tail" style={{ ['--pet-ear' as string]: '#fff8fc' }} />
+        <span className="pet-ear left" style={{ ['--pet-ear' as string]: '#ffe6f1' }} />
+        <span className="pet-ear right" style={{ ['--pet-ear' as string]: '#ffe6f1' }} />
+        <span className="pet-body" style={{ background: theme.pet }}>
+          <span className="pet-eye left" />
+          <span className="pet-eye right" />
+          <span className="pet-cheek left" />
+          <span className="pet-cheek right" />
+          <span className="pet-mouth" />
+        </span>
+        <span className="pet-crown">✦</span>
       </div>
 
       <span className="spark s1">✦</span>

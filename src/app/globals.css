@@ -466,6 +466,71 @@ body {
   animation-delay: 0.6s;
 }
 
+/* ---------- 星图大厅：星空散布 ---------- */
+.star-arena {
+  background:
+    radial-gradient(420px 300px at 12% 0%, rgba(255, 214, 232, 0.55) 0%, rgba(255, 214, 232, 0) 70%),
+    radial-gradient(460px 340px at 96% 12%, rgba(214, 202, 250, 0.6) 0%, rgba(214, 202, 250, 0) 72%),
+    radial-gradient(420px 320px at 60% 108%, rgba(255, 236, 205, 0.5) 0%, rgba(255, 236, 205, 0) 70%),
+    linear-gradient(165deg, rgba(255, 251, 255, 0.72) 0%, rgba(246, 238, 255, 0.66) 55%, rgba(255, 244, 248, 0.72) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 0 60px rgba(205, 188, 245, 0.12);
+}
+
+.arena-orbit {
+  position: absolute;
+  border: 1px dashed rgba(150, 120, 175, 0.2);
+  border-radius: 50%;
+  animation: orbitSpin 120s linear infinite;
+  pointer-events: none;
+}
+
+.arena-star {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff 0%, #d9c8f5 60%, rgba(205, 188, 245, 0) 100%);
+  box-shadow: 0 0 6px rgba(205, 188, 245, 0.65);
+  animation: twinkle 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.arena-cross {
+  position: absolute;
+  font-size: 14px;
+  color: rgba(243, 207, 122, 0.85);
+  text-shadow: 0 0 10px rgba(243, 207, 122, 0.5);
+  animation: twinkle 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 漂浮层：只负责上下浮动，hover 缩放交给内层，避免 transform 冲突 */
+.fp-float {
+  height: 100%;
+  width: 100%;
+  animation: floaty 7s ease-in-out infinite;
+}
+
+/* 手绘抠图星球：drop-shadow 贴合透明轮廓，hover 时发光 */
+.fp-img {
+  height: auto;
+  filter: drop-shadow(0 10px 16px rgba(90, 62, 115, 0.22));
+  transition: filter 0.3s ease;
+}
+
+.group:hover .fp-img,
+.group:focus-visible .fp-img {
+  filter:
+    drop-shadow(0 0 14px var(--fp-glow, rgba(185, 163, 234, 0.75)))
+    drop-shadow(0 0 30px var(--fp-glow, rgba(185, 163, 234, 0.55)));
+}
+
+/* 装饰天体（月亮 / 星星 / 小星球），不响应点击 */
+.arena-decor {
+  position: absolute;
+  pointer-events: none;
+  animation: floaty 8s ease-in-out infinite;
+}
+
 /* ---------- 回忆卡 ---------- */
 .memory-card {
   position: relative;

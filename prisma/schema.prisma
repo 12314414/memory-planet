@@ -27,8 +27,6 @@ model Planet {
   theme          String   @default("aurora")
   // { name, species, persona }
   petProfileJson String
-  // { status, imageUrl?, sourcePhotoUrl?, style?, promptVersion?, createdAt? }
-  petAvatarJson  String?
   // PRIVATE | INVITE | PUBLIC
   visibility     String   @default("INVITE")
   inviteCode     String   @unique
