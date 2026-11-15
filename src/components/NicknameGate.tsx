@@ -1,10 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 
 export default function NicknameGate() {
-  const router = useRouter();
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,14 +18,14 @@ export default function NicknameGate() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/enter', {
+      const res = await apiFetch('/api/auth/enter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nickname: name }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || '进入失败，请再试一次');
-      router.refresh();
+      window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : '进入失败，请再试一次');
       setLoading(false);

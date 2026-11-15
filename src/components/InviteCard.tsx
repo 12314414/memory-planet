@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { BASE_PATH, DEMO_MODE, apiFetch } from '@/lib/api-client';
 
 type InviteCardProps = {
   inviteCode: string;
+  planetId?: string;
   onReset?: (code: string) => void;
 };
 
-/** 邀请卡：展示 6 位邀请码 + /planet/visit/[code] 分享链接 */
-export default function InviteCard({ inviteCode, onReset }: InviteCardProps) {
+/** 邀请卡：展示 6 位邀请码 + 分享链接 */
+export default function InviteCard({ inviteCode, planetId, onReset }: InviteCardProps) {
   const [origin, setOrigin] = useState('');
   const [copied, setCopied] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -18,7 +20,11 @@ export default function InviteCard({ inviteCode, onReset }: InviteCardProps) {
     setOrigin(window.location.origin);
   }, []);
 
-  const link = `${origin || ''}/planet/visit/${inviteCode}`;
+  // 静态演示版没有服务端路由，直接用「星球 id + 邀请码」的形式分享
+  const link =
+    DEMO_MODE && planetId
+      ? `${origin}${BASE_PATH}/planet/${planetId}?code=${inviteCode}`
+      : `${origin}${BASE_PATH}/planet/visit/${inviteCode}`;
 
   const copy = async () => {
     const legacyCopy = () => {
@@ -59,7 +65,7 @@ export default function InviteCard({ inviteCode, onReset }: InviteCardProps) {
     setResetting(true);
     setError('');
     try {
-      const res = await fetch('/api/planet/owner/invite', { method: 'POST' });
+      const res = await apiFetch('/api/planet/owner/invite', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || '重置失败');
       onReset?.(data.inviteCode);

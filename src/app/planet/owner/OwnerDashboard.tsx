@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AccessControlSheet from '@/components/AccessControlSheet';
 import InviteCard from '@/components/InviteCard';
 import PlanetScene from '@/components/PlanetScene';
+import { apiFetch } from '@/lib/api-client';
 import { ACTION_ICON, ACTION_LABEL, VISIBILITY_LABEL, type Visibility } from '@/lib/constants';
 import type { OwnerDashboardDTO, PetProfile } from '@/lib/types';
 
@@ -45,7 +46,7 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
 
   const fetchDashboard = useCallback(async () => {
     try {
-      const res = await fetch('/api/planet/owner/dashboard', { cache: 'no-store' });
+      const res = await apiFetch('/api/planet/owner/dashboard', { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || '读取失败');
       const next = json as OwnerDashboardDTO;
@@ -100,7 +101,7 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
     setBriefLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/planet/owner/brief', { method: 'POST' });
+      const res = await apiFetch('/api/planet/owner/brief', { method: 'POST' });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || '简报生成失败');
       briefLoaded.current = true;
@@ -115,7 +116,7 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
 
   const deleteMessage = async (messageId: string) => {
     try {
-      const res = await fetch(`/api/planet/owner/message?messageId=${messageId}`, {
+      const res = await apiFetch(`/api/planet/owner/message?messageId=${messageId}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('删除失败');
@@ -238,7 +239,7 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <AccessControlSheet visibility={visibility} onChange={setVisibility} />
-        <InviteCard inviteCode={inviteCode} onReset={setInviteCode} />
+        <InviteCard inviteCode={inviteCode} planetId={initial.id} onReset={setInviteCode} />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

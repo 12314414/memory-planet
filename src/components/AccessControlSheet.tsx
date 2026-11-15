@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import { VISIBILITY_LABEL, type Visibility } from '@/lib/constants';
 
 type AccessControlSheetProps = {
@@ -38,7 +39,7 @@ export default function AccessControlSheet({ visibility, onChange }: AccessContr
     setPending(next);
     setError('');
     try {
-      const res = await fetch('/api/planet/owner/settings', {
+      const res = await apiFetch('/api/planet/owner/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ visibility: next }),

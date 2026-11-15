@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 
 type Stats = { statsVisits: number; statsLights: number; statsStars: number };
 
@@ -26,7 +27,7 @@ export default function VisitorActions({ planetId, inviteCode, onStats }: Visito
     setPending(action);
     setToast('');
     try {
-      const res = await fetch(`/api/planet/${planetId}/action`, {
+      const res = await apiFetch(`/api/planet/${planetId}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, inviteCode }),

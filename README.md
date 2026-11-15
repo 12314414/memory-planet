@@ -43,6 +43,7 @@ npm run dev
 
 ### 公网部署（GitHub + Vercel + Neon）
 
+- 线上地址：<https://memory-planet-mpzscjogp-my-team-c72b.vercel.app>
 - 代码仓库：<https://github.com/12314414/memory-planet>
 - Vercel 项目：`my-team-c72b/memory-planet`（已连接上面的 GitHub 仓库，push 即自动部署）
 - 数据库：Vercel Marketplace 的 **Neon Postgres**，连接串由集成自动注入 `DATABASE_URL`
@@ -62,6 +63,10 @@ npm run dev
 | `AI_BASE_URL` / `AI_MODEL` / `AI_API_KEY` | AI 代理配置，留空则全程模板降级 |
 
 > Vercel 的 Serverless 文件系统只读，因此公网环境必须用托管 Postgres；本地 `npm run dev` 仍用 SQLite。
+>
+> `vercel env pull` 生成的 `.env.local` 会覆盖 `.env` 里的 `DATABASE_URL`，让本地 dev 连到 Neon。要保持本地用 SQLite，把该文件改名为 `.env.local.neon.bak` 或删除即可（需要时再 `vercel env pull` 拉回）。
+>
+> 国内网络直连 `*.vercel.app` 常被 DNS 污染（本机解析到 `199.96.58.85`），访问线上站点需代理/VPN，或在 Vercel 绑定自有域名。
 
 
 ### AI 配置（服务端）

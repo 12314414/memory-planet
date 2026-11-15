@@ -1,16 +1,24 @@
+'use client';
+
 import NicknameGate from '@/components/NicknameGate';
+import PageLoading from '@/components/PageLoading';
 import SiteHeader from '@/components/SiteHeader';
-import { ensurePlanetForUser, getCurrentUser, parsePetProfile } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import type { Visibility } from '@/lib/constants';
+import { useBootstrap } from '@/lib/use-bootstrap';
 import HomeView from './HomeView';
 
-export const dynamic = 'force-dynamic';
+export default function HomePage() {
+  const { data, loading } = useBootstrap();
 
-export default async function HomePage() {
-  const user = await getCurrentUser();
+  if (loading) {
+    return (
+      <>
+        <SiteHeader />
+        <PageLoading hint="正在点亮你的星球…" />
+      </>
+    );
+  }
 
-  if (!user) {
+  if (!data?.user || !data.planet || !data.pet) {
     return (
       <>
         <SiteHeader />
@@ -19,30 +27,16 @@ export default async function HomePage() {
     );
   }
 
-  const planet = await ensurePlanetForUser(user.id, user.nickname);
-  const [publicMemories, privateMemories] = await Promise.all([
-    prisma.memory.count({ where: { planetId: planet.id, visibility: 'PUBLIC' } }),
-    prisma.memory.count({ where: { planetId: planet.id, visibility: 'PRIVATE' } }),
-  ]);
-
   return (
     <>
-      <SiteHeader nickname={user.nickname} active="home" />
+      <SiteHeader nickname={data.user.nickname} active="home" />
       <main>
         <HomeView
-          nickname={user.nickname}
-          planet={{
-            id: planet.id,
-            name: planet.name,
-            theme: planet.theme,
-            visibility: planet.visibility as Visibility,
-            statsVisits: planet.statsVisits,
-            statsLights: planet.statsLights,
-            statsStars: planet.statsStars,
-          }}
-          pet={parsePetProfile(planet.petProfileJson)}
-          publicMemories={publicMemories}
-          privateMemories={privateMemories}
+          nickname={data.user.nickname}
+          planet={data.planet}
+          pet={data.pet}
+          publicMemories={data.publicMemories ?? 0}
+          privateMemories={data.privateMemories ?? 0}
         />
       </main>
     </>

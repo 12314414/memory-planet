@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import PlanetScene from '@/components/PlanetScene';
+import { apiFetch, appPath, DEMO_MODE } from '@/lib/api-client';
+import { resolveInviteCode } from '@/lib/demo-store';
 import { getTheme } from '@/lib/theme';
 import { VISIBILITY_LABEL, type Visibility } from '@/lib/constants';
 import type { PetProfile, PublicPlanetDTO } from '@/lib/types';
@@ -41,7 +43,7 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
     let alive = true;
     const load = async () => {
       try {
-        const res = await fetch('/api/planets/public', { cache: 'no-store' });
+        const res = await apiFetch('/api/planets/public', { cache: 'no-store' });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || '加载失败');
         if (alive) setPlanets(data.planets || []);
@@ -65,7 +67,16 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
       return;
     }
     setCodeError('');
-    window.location.href = `/planet/visit/${value}`;
+    if (DEMO_MODE) {
+      const planetId = resolveInviteCode(value);
+      if (!planetId) {
+        setCodeError('没有找到这个邀请码对应的星球');
+        return;
+      }
+      window.location.href = appPath(`/planet/${planetId}?code=${value}`);
+      return;
+    }
+    window.location.href = appPath(`/planet/visit/${value}`);
   };
 
   return (

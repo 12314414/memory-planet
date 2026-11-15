@@ -1,16 +1,24 @@
+'use client';
+
 import NicknameGate from '@/components/NicknameGate';
+import PageLoading from '@/components/PageLoading';
 import SiteHeader from '@/components/SiteHeader';
-import { ensurePlanetForUser, getCurrentUser, parsePetProfile } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import type { Visibility } from '@/lib/constants';
+import { useBootstrap } from '@/lib/use-bootstrap';
 import StarMapView from './StarMapView';
 
-export const dynamic = 'force-dynamic';
+export default function StarMapPage() {
+  const { data, loading } = useBootstrap();
 
-export default async function StarMapPage() {
-  const user = await getCurrentUser();
+  if (loading) {
+    return (
+      <>
+        <SiteHeader />
+        <PageLoading hint="正在铺开星图…" />
+      </>
+    );
+  }
 
-  if (!user) {
+  if (!data?.user || !data.planet || !data.pet) {
     return (
       <>
         <SiteHeader />
@@ -19,43 +27,14 @@ export default async function StarMapPage() {
     );
   }
 
-  const planet = await ensurePlanetForUser(user.id, user.nickname);
-
-  const rawVisits = await prisma.visit.findMany({
-    where: { planetId: planet.id, visitorId: { not: user.id } },
-    orderBy: { createdAt: 'desc' },
-    take: 40,
-  });
-
-  const seen = new Set<string>();
-  const recentVisitors: { name: string; action: string; createdAt: string }[] = [];
-  for (const visit of rawVisits) {
-    if (seen.has(visit.visitorId)) continue;
-    seen.add(visit.visitorId);
-    recentVisitors.push({
-      name: visit.visitorName,
-      action: visit.action,
-      createdAt: visit.createdAt.toISOString(),
-    });
-    if (recentVisitors.length >= 6) break;
-  }
-
   return (
     <>
-      <SiteHeader nickname={user.nickname} active="map" />
+      <SiteHeader nickname={data.user.nickname} active="map" />
       <StarMapView
-        nickname={user.nickname}
-        planet={{
-          id: planet.id,
-          name: planet.name,
-          theme: planet.theme,
-          visibility: planet.visibility as Visibility,
-          statsVisits: planet.statsVisits,
-          statsLights: planet.statsLights,
-          statsStars: planet.statsStars,
-        }}
-        pet={parsePetProfile(planet.petProfileJson)}
-        recentVisitors={recentVisitors}
+        nickname={data.user.nickname}
+        planet={data.planet}
+        pet={data.pet}
+        recentVisitors={data.recentVisitors ?? []}
       />
     </>
   );

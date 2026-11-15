@@ -1,15 +1,24 @@
+'use client';
+
 import NicknameGate from '@/components/NicknameGate';
+import PageLoading from '@/components/PageLoading';
 import SiteHeader from '@/components/SiteHeader';
-import { ensurePlanetForUser, getCurrentUser, parsePetProfile } from '@/lib/auth';
-import type { Visibility } from '@/lib/constants';
+import { useBootstrap } from '@/lib/use-bootstrap';
 import OwnerDashboard from './OwnerDashboard';
 
-export const dynamic = 'force-dynamic';
+export default function OwnerPage() {
+  const { data, loading } = useBootstrap();
 
-export default async function OwnerPage() {
-  const user = await getCurrentUser();
+  if (loading) {
+    return (
+      <>
+        <SiteHeader />
+        <PageLoading hint="正在打开主人控制台…" />
+      </>
+    );
+  }
 
-  if (!user) {
+  if (!data?.user || !data.planet || !data.pet) {
     return (
       <>
         <SiteHeader />
@@ -18,20 +27,18 @@ export default async function OwnerPage() {
     );
   }
 
-  const planet = await ensurePlanetForUser(user.id, user.nickname);
-
   return (
     <>
-      <SiteHeader nickname={user.nickname} active="owner" />
+      <SiteHeader nickname={data.user.nickname} active="owner" />
       <OwnerDashboard
-        nickname={user.nickname}
+        nickname={data.user.nickname}
         initial={{
-          id: planet.id,
-          name: planet.name,
-          theme: planet.theme,
-          visibility: planet.visibility as Visibility,
-          inviteCode: planet.inviteCode,
-          pet: parsePetProfile(planet.petProfileJson),
+          id: data.planet.id,
+          name: data.planet.name,
+          theme: data.planet.theme,
+          visibility: data.planet.visibility,
+          inviteCode: data.planet.inviteCode,
+          pet: data.pet,
         }}
       />
     </>

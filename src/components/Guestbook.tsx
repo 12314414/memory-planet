@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import type { GuestbookDTO } from '@/lib/types';
 
 type GuestbookProps = {
@@ -38,7 +39,7 @@ export default function Guestbook({
     setPending(true);
     setError('');
     try {
-      const res = await fetch(`/api/planet/${planetId}/message`, {
+      const res = await apiFetch(`/api/planet/${planetId}/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text, inviteCode }),

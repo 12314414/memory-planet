@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 
 type AiWelcomeBubbleProps = {
   planetId: string;
@@ -25,7 +26,7 @@ export default function AiWelcomeBubble({
 
     const run = async () => {
       try {
-        const res = await fetch('/api/ai/chat', {
+        const res = await apiFetch('/api/ai/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'welcome', planetId }),

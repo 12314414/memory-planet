@@ -8,6 +8,7 @@ import MemoryWall from '@/components/MemoryWall';
 import PlanetScene from '@/components/PlanetScene';
 import SiteHeader from '@/components/SiteHeader';
 import VisitorActions from '@/components/VisitorActions';
+import { apiFetch, appPath } from '@/lib/api-client';
 import type { GuestbookDTO, MemoryDTO, PlanetDTO } from '@/lib/types';
 
 type PageData = {
@@ -34,7 +35,7 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
     setError(null);
     try {
       const query = inviteCode ? `?code=${encodeURIComponent(inviteCode)}` : '';
-      const res = await fetch(`/api/planet/${planetId}${query}`, { cache: 'no-store' });
+      const res = await apiFetch(`/api/planet/${planetId}${query}`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok) {
         setError({ message: json?.error || '无法进入这颗星球', status: res.status });
@@ -97,7 +98,7 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
                   event.preventDefault();
                   const value = code.trim().toUpperCase();
                   if (value.length === 6) {
-                    window.location.href = `/planet/${planetId}?code=${value}`;
+                    window.location.href = appPath(`/planet/${planetId}?code=${value}`);
                   }
                 }}
               >

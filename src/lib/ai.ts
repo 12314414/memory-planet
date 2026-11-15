@@ -1,16 +1,7 @@
-import type { PetProfile } from './types';
+import { clip, fallbackText, type AiContext, type AiType } from './ai-text';
 
-export type AiType = 'welcome' | 'reply' | 'brief';
-
-export type AiContext = {
-  type: AiType;
-  planetName: string;
-  themeLabel: string;
-  pet: PetProfile;
-  visitorName: string;
-  content?: string;
-  briefData?: string;
-};
+export type { AiContext, AiType } from './ai-text';
+export { fallbackText } from './ai-text';
 
 export type AiResult = { text: string; source: 'ai' | 'fallback' };
 
@@ -21,32 +12,6 @@ const SPECIES_LABEL: Record<string, string> = {
 };
 
 const LIMIT: Record<AiType, number> = { welcome: 60, reply: 50, brief: 240 };
-
-const FALLBACK_REPLY = (pet: PetProfile) => `${pet.name}记下了你的话，谢谢你来到这颗星球。`;
-
-function clip(text: string, max: number) {
-  const clean = text
-    .replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '')
-    .replace(/^(宠物|旁白|回复|欢迎语)[:：]\s*/g, '')
-    .replace(/\n{2,}/g, '\n')
-    .trim();
-  if (clean.length <= max) return clean;
-  return `${clean.slice(0, max - 1)}…`;
-}
-
-/** 失败降级模板：保证任何情况下都有可展示的文案 */
-export function fallbackText(ctx: AiContext): string {
-  if (ctx.type === 'welcome') {
-    return clip(
-      `欢迎${ctx.visitorName}来到${ctx.planetName}～我是${ctx.pet.name}，这里的回忆都晒过太阳啦。`,
-      LIMIT.welcome,
-    );
-  }
-  if (ctx.type === 'reply') {
-    return clip(FALLBACK_REPLY(ctx.pet), LIMIT.reply);
-  }
-  return clip(`今日访客小结：${ctx.briefData || '暂时还没有新的互动。'}`, LIMIT.brief);
-}
 
 function systemPrompt(ctx: AiContext) {
   return [

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { apiFetch, appPath } from '@/lib/api-client';
 
 type SiteHeaderProps = {
   nickname?: string;
@@ -16,16 +16,14 @@ const NAV = [
 ] as const;
 
 export default function SiteHeader({ nickname, active }: SiteHeaderProps) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   const switchIdentity = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      await fetch('/api/auth/exit', { method: 'POST' });
-      router.push('/');
-      router.refresh();
+      await apiFetch('/api/auth/exit', { method: 'POST' });
+      window.location.href = appPath('/');
     } finally {
       setBusy(false);
     }

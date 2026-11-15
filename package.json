@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:gh-pages": "node scripts/gh-pages-build.mjs",
     "vercel-build": "node scripts/vercel-build.mjs",
     "start": "next start",
     "lint": "next lint",
