@@ -1,0 +1,106 @@
+// 回忆星球 · 联机串门版
+// 注意：SQLite 不支持 Prisma enum，权限/动作枚举用 String 存储，
+// 取值集中在 src/lib/constants.ts，服务端统一校验。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  nickname  String
+  createdAt DateTime @default(now())
+
+  planets    Planet[]
+  memories   Memory[]
+}
+
+model Planet {
+  id             String   @id @default(cuid())
+  ownerId        String
+  name           String
+  theme          String   @default("aurora")
+  // { name, species, persona }
+  petProfileJson String
+  // PRIVATE | INVITE | PUBLIC
+  visibility     String   @default("INVITE")
+  inviteCode     String   @unique
+  updatedAt      DateTime @updatedAt
+  statsVisits    Int      @default(0)
+  statsLights    Int      @default(0)
+  statsStars     Int      @default(0)
+
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  memories   Memory[]
+  visits     Visit[]
+  guestbooks Guestbook[]
+  aiCaches   AiCache[]
+
+  @@index([ownerId])
+  @@index([visibility, updatedAt])
+}
+
+model Memory {
+  id         String   @id @default(cuid())
+  planetId   String
+  ownerId    String
+  imageUrl   String?
+  text       String
+  // PRIVATE | PUBLIC
+  visibility String   @default("PRIVATE")
+  createdAt  DateTime @default(now())
+
+  planet Planet @relation(fields: [planetId], references: [id], onDelete: Cascade)
+  owner  User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([planetId, visibility])
+}
+
+model Visit {
+  id          String   @id @default(cuid())
+  planetId    String
+  visitorId   String
+  visitorName String
+  // ENTER | LIGHT | STAR | FEED | MESSAGE
+  action      String
+  createdAt   DateTime @default(now())
+
+  planet Planet @relation(fields: [planetId], references: [id], onDelete: Cascade)
+
+  @@index([planetId, createdAt])
+}
+
+model Guestbook {
+  id          String   @id @default(cuid())
+  planetId    String
+  visitorId   String
+  visitorName String
+  content     String
+  aiReply     String?
+  // VISIBLE | DELETED
+  status      String   @default("VISIBLE")
+  createdAt   DateTime @default(now())
+
+  planet Planet @relation(fields: [planetId], references: [id], onDelete: Cascade)
+
+  @@index([planetId, status, createdAt])
+}
+
+model AiCache {
+  id        String   @id @default(cuid())
+  planetId  String
+  visitorId String
+  // welcome | brief | reply
+  type      String
+  content   String
+  expiresAt DateTime
+
+  planet Planet @relation(fields: [planetId], references: [id], onDelete: Cascade)
+
+  @@index([planetId, visitorId, type])
+}
