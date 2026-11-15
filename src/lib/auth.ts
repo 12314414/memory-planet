@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { prisma } from './prisma';
+import { getSupabaseUser, SUPABASE_SERVER_ENABLED } from './supabase-server';
 import type { PetProfile } from './types';
 import { THEME_LIST } from './theme';
 
@@ -31,10 +33,33 @@ export async function uniqueInviteCode(): Promise<string> {
   return `${generateInviteCode(4)}${Date.now().toString(36).slice(-2).toUpperCase()}`;
 }
 
+/**
+ * 当前用户：
+ * 1. 配置了 Supabase → 用 Supabase 会话（本地 User 表按 Supabase uid 映射）
+ * 2. 未配置 → 回退到昵称 cookie（本地演示 / 纯静态演示版）
+ */
 export async function getCurrentUser() {
+  if (SUPABASE_SERVER_ENABLED) {
+    const supabaseUser = await getSupabaseUser();
+    if (!supabaseUser) return null;
+    return ensureUserForSupabase(supabaseUser);
+  }
+
   const id = cookies().get(USER_COOKIE)?.value;
   if (!id) return null;
   return prisma.user.findUnique({ where: { id } });
+}
+
+/** Supabase 用户 → 本地 User（首次登录时落地一行，nickname 取注册时填的展示名） */
+async function ensureUserForSupabase(user: SupabaseUser) {
+  const existing = await prisma.user.findUnique({ where: { id: user.id } });
+  if (existing) return existing;
+
+  const metaName = typeof user.user_metadata?.nickname === 'string' ? user.user_metadata.nickname : '';
+  const fallbackName = (user.email || '旅人').split('@')[0];
+  const nickname = (metaName || fallbackName).trim().slice(0, 12) || '旅人';
+
+  return prisma.user.create({ data: { id: user.id, nickname } });
 }
 
 function pickPreset(seed: string) {

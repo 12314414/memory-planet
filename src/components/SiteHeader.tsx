@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { apiFetch, appPath } from '@/lib/api-client';
+import { apiFetch, appPath, DEMO_MODE } from '@/lib/api-client';
+import { clearDemoUser } from '@/lib/demo-store';
+import { getSupabaseBrowser } from '@/lib/supabase';
 
 type SiteHeaderProps = {
   nickname?: string;
@@ -22,7 +24,20 @@ export default function SiteHeader({ nickname, active }: SiteHeaderProps) {
     if (busy) return;
     setBusy(true);
     try {
-      await apiFetch('/api/auth/exit', { method: 'POST' });
+      const supabase = getSupabaseBrowser();
+      if (supabase) {
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // 忽略登出异常，继续清理本地状态
+        }
+      }
+      if (DEMO_MODE) clearDemoUser();
+      try {
+        await apiFetch('/api/auth/exit', { method: 'POST' });
+      } catch {
+        // 静态版无该接口时忽略
+      }
       window.location.href = appPath('/');
     } finally {
       setBusy(false);
@@ -44,7 +59,7 @@ export default function SiteHeader({ nickname, active }: SiteHeaderProps) {
             <span className="absolute left-1/2 top-1/2 h-[6px] w-[42px] -translate-x-1/2 -translate-y-1/2 rotate-[-18deg] rounded-full border border-[#eec97a]" />
           </span>
           <span className="leading-tight">
-            <span className="title block text-[15px] font-medium tracking-wide">回忆星球</span>
+            <span className="title block text-[15px] font-medium tracking-wide">宠归星畔</span>
             <span className="block text-[9px] uppercase tracking-[0.3em] text-[#b09ec0]">Memory Planet</span>
           </span>
         </Link>
