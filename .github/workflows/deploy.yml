@@ -31,6 +31,8 @@ jobs:
         run: npm run build:gh-pages
         env:
           GH_PAGES: "true"
+          NEXT_PUBLIC_SUPABASE_URL: "https://begrmhzzcqbiozdfmafl.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_aykQBjKMeV4kT5AjGB4xaQ_wXT3XgKl"
 
       - uses: actions/upload-pages-artifact@v3
         with:
