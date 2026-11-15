@@ -68,6 +68,18 @@ npm run dev
 >
 > 国内网络直连 `*.vercel.app` 常被 DNS 污染（本机解析到 `199.96.58.85`），访问线上站点需代理/VPN，或在 Vercel 绑定自有域名。
 
+### GitHub Pages 静态演示版（国内可直连）
+
+- 地址：<https://12314414.github.io/memory-planet/>（`12314414.github.io` 解析正常，国内可直接打开）
+- 构建：`npm run build:gh-pages` → 产物在 `out/` → 发布到仓库的 `gh-pages` 分支（Pages 源即该分支根目录）
+- 实现方式：`GH_PAGES=1` 时走 `output: 'export'` + `basePath: /memory-planet`；静态版没有服务端，`src/lib/demo-store.ts` 用 localStorage 模拟全部接口（`apiFetch` 统一分流），页面与组件代码和服务器版完全共用
+- 演示账号：任意昵称即可进入；内置 5 颗星球，邀请码 `ABC123`（慢慢星球）/ `MINT66` / `LUNA88` / `FRIEND` / `MINE01`
+- 静态版限制：
+  1. 数据只存在当前浏览器，换设备或清缓存会回到初始演示数据
+  2. AI 只用模板降级（Key 不进前端）
+  3. 重置邀请码后分享链接形如 `/planet/p-mine?code=XXXXXX`（静态托管无法为新邀请码生成新路由）
+- 构建脚本会在构建期间临时把 `src/app/api/**/route.ts` 改名为 `.off`（静态导出不支持 Route Handlers），结束后自动还原；因 Windows 下目录常被 IDE 占用，脚本只改文件名不改目录
+
 
 ### AI 配置（服务端）
 
