@@ -83,7 +83,7 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
     <main className="wrap pb-20 pt-10">
       <div className="mb-8 fade-up">
         <p className="eyebrow">STAR MAP · DOOR TO DOOR</p>
-        <h1 className="title mt-3 text-3xl sm:text-4xl">星图 · 串门大厅</h1>
+        <h1 className="title mt-3 text-3xl sm:text-4xl">星图 · 家园系统</h1>
         <p className="muted mt-3 max-w-xl text-sm leading-7">
           {nickname}，这里能看到大家的公开星球。串门是异步的：你留下痕迹，主人在自己的时间里收到。
         </p>
