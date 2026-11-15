@@ -1,4 +1,4 @@
-# 回忆星球 · 联机「串门」版
+# 宠归星畔 · 联机「串门」版
 
 给每段回忆一颗星球。打开链接就能去别人的星球串门：看宠物、看公开回忆、点亮、送星、喂食、留言；AI 宠物以主人设定的人格接待每一位访客。
 
@@ -98,6 +98,22 @@ AI_TIMEOUT_MS="9000"
 
 > 这些变量**只在服务端**（`src/lib/ai.ts`、`/api/ai/chat`）读取，不挂 `NEXT_PUBLIC_`，前端代码与响应体都不会出现 Key。`AI_API_KEY` 为空时自动使用模板文案，页面表现完全正常。
 
+### Supabase 登录（邮箱 + 密码）
+
+未配置时页面自动回退到「输入昵称进入」，本地演示不受影响；配置后自动切换为邮箱注册 / 登录。
+
+1. 在 <https://supabase.com> 新建项目（免费额度足够）。
+2. Project Settings → API，复制 **Project URL** 和 **anon public key**，写入 `.env`：
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL="https://xxxx.supabase.co"
+   NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOi..."
+   ```
+3. Authentication → Sign In / Up：Email 保持开启；演示阶段建议**关闭 Confirm email**，否则注册后必须先去邮箱点确认链接。
+4. Authentication → URL Configuration：Site URL 填线上地址（如 `https://12314414.github.io/memory-planet/`），Redirect URLs 追加 `http://localhost:3000`。
+5. 本地 `npm run dev` 立刻生效；GitHub Pages 版需重新 `npm run build:gh-pages` 再发布（`NEXT_PUBLIC_*` 是**构建期**注入）。
+
+实现方式：`@supabase/ssr` 把会话写进 cookie，服务端 `getCurrentUser()` 读 Supabase 用户，并以其 uid 作为本地 `User.id`（首次登录自动建号 + 建星球）；静态演示版用 `supabase-js` 在浏览器登录，业务数据仍存 localStorage。`service_role` key 任何情况下都不要写进前端。
+
 ---
 
 ## 二、文件结构
@@ -164,7 +180,7 @@ src/
 ## 三、关键设计
 
 ### 身份
-`POST /api/auth/enter` 生成 userId 并写入 **httpOnly cookie**（`hx_uid`）。页面全部通过服务端 `cookies()` 取身份，前端传的 userId 一律不采信。右上角「切换身份」= 清 cookie 回昵称页，答辩时可 20 秒内切换主人 / 访客。
+配置了 Supabase 时，身份 = Supabase 会话（`@supabase/ssr` 写入 cookie，服务端 `auth.getUser()` 校验，本地 `User.id` 直接用 Supabase uid）。未配置时回退 `POST /api/auth/enter` 写入 **httpOnly cookie**（`hx_uid`），供本地与静态演示使用。前端传的 userId 一律不采信。右上角「切换身份」= 退出登录回登录页，答辩时可 20 秒内切换主人 / 访客。
 
 ### 权限矩阵（`src/lib/permissions.ts`）
 
@@ -260,7 +276,7 @@ type IntroProps = { duration?: number; skippable?: boolean; onFinish: () => void
 
 ## 六、答辩叙事（30 秒版）
 
-> 这是一个「异步串门式轻社交」。每个用户有一颗回忆星球，隐私分级由主人掌握：私密、邀请码、公开。
+> 这是一个「异步串门式轻社交」。每个用户拥有一颗自己的星球，隐私分级由主人掌握：私密、邀请码、公开。
 > 别人来串门时，AI 不是通用聊天机器人，而是**主人宠物的化身**——按宠物人格说欢迎语、回留言、给主人写访客简报，同时被严格约束不泄露隐私、不编造事实。
 > 技术上刻意做减法：轻实时用轮询而不是 WebSocket，视觉用 CSS 而不是 3D 引擎，AI 全部走服务端代理并在失败时降级。
 > 所以它可演示、可部署、也可解释：回忆值得被看见，但边界由主人决定。

@@ -15,7 +15,7 @@ const LIMIT: Record<AiType, number> = { welcome: 60, reply: 50, brief: 240 };
 
 function systemPrompt(ctx: AiContext) {
   return [
-    `你是「${ctx.pet.name}」，一只住在「${ctx.planetName}」的${SPECIES_LABEL[ctx.pet.species] || '小宠物'}，也是这颗回忆星球的宠物接待员。`,
+    `你是「${ctx.pet.name}」，一只住在「${ctx.planetName}」的${SPECIES_LABEL[ctx.pet.species] || '小宠物'}，也是这颗星球的宠物接待员。`,
     `你的性格：${ctx.pet.persona}。`,
     `星球主题：${ctx.themeLabel}。`,
     '说话规则：',

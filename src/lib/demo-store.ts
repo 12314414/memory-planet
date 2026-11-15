@@ -128,6 +128,21 @@ export function resetDemoState() {
   window.localStorage.removeItem(STORAGE_KEY);
 }
 
+/** 静态演示版：Supabase 登录成功后把展示名写入本地演示态 */
+export function setDemoNickname(nickname: string) {
+  if (typeof window === 'undefined') return;
+  const state = read();
+  state.user = { id: DEMO_USER_ID, nickname: nickname.trim().slice(0, 12) || '旅人' };
+  write(state);
+}
+
+export function clearDemoUser() {
+  if (typeof window === 'undefined') return;
+  const state = read();
+  state.user = null;
+  write(state);
+}
+
 export const DEMO_CODES = DEMO_INVITE_CODES;
 
 type Access =

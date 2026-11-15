@@ -8,7 +8,7 @@ export const INTRO_MODE: 'placeholder' | 'lottie' | 'video' =
 export const INTRO_DURATION = 3000;
 
 export const BRAND = {
-  cn: '回忆星球',
+  cn: '宠归星畔',
   en: 'Memory Planet',
   tagline: '有些回忆，值得一颗星球',
 };

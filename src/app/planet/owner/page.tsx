@@ -1,6 +1,6 @@
 'use client';
 
-import NicknameGate from '@/components/NicknameGate';
+import AuthGate from '@/components/AuthGate';
 import PageLoading from '@/components/PageLoading';
 import SiteHeader from '@/components/SiteHeader';
 import { useBootstrap } from '@/lib/use-bootstrap';
@@ -22,7 +22,7 @@ export default function OwnerPage() {
     return (
       <>
         <SiteHeader />
-        <NicknameGate />
+        <AuthGate />
       </>
     );
   }

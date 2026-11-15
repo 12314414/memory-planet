@@ -1,4 +1,4 @@
-// 回忆星球 · 联机串门版
+// 宠归星畔 · 联机串门版
 // 注意：SQLite 不支持 Prisma enum，权限/动作枚举用 String 存储，
 // 取值集中在 src/lib/constants.ts，服务端统一校验。
 
