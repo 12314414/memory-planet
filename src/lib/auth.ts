@@ -131,22 +131,3 @@ export function parsePetProfile(raw: string): PetProfile {
   }
   return { name: '团子', species: 'cat', persona: '一只温柔的星球宠物' };
 }
-
-/** 合并宠物档案与 Q 版形象：仅当 avatar.status === 'READY' 且有 imageUrl 时注入 */
-export function parsePetProfileWithAvatar(
-  petProfileJson: string,
-  petAvatarJson?: string | null,
-): PetProfile {
-  const base = parsePetProfile(petProfileJson);
-  if (!petAvatarJson) return base;
-
-  try {
-    const avatar = JSON.parse(petAvatarJson) as { status?: string; imageUrl?: string };
-    if (avatar?.status === 'READY' && typeof avatar.imageUrl === 'string' && avatar.imageUrl) {
-      return { ...base, avatar: { imageUrl: avatar.imageUrl } };
-    }
-  } catch {
-    // ignore malformed json
-  }
-  return base;
-}

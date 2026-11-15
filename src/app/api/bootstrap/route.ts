@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ensurePlanetForUser, getCurrentUser, parsePetProfileWithAvatar } from '@/lib/auth';
+import { ensurePlanetForUser, getCurrentUser, parsePetProfile } from '@/lib/auth';
 import type { Visibility } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +50,7 @@ export async function GET() {
       statsLights: planet.statsLights,
       statsStars: planet.statsStars,
     },
-    pet: parsePetProfileWithAvatar(planet.petProfileJson, planet.petAvatarJson),
+    pet: parsePetProfile(planet.petProfileJson),
     publicMemories,
     privateMemories,
     recentVisitors,
