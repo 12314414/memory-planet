@@ -241,6 +241,21 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
               </p>
             )}
           </section>
+
+          {/* 宠物形象：拍照生成 2.5D Q 版 */}
+          <section className="card p-5 sm:p-6">
+            <div className="mb-4 flex items-end justify-between">
+              <div>
+                <p className="eyebrow">PET AVATAR</p>
+                <h2 className="title mt-1.5 text-xl">宠物形象</h2>
+              </div>
+              <span className="text-[10px] text-[#b09ec0]">拍照生成 2.5D Q 版</span>
+            </div>
+            <PetAvatarStudio
+              initialAvatar={initial.pet.avatar}
+              onSaved={(url) => setAvatarUrl(url)}
+            />
+          </section>
         </div>
       </div>
 
@@ -248,21 +263,6 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
         <AccessControlSheet visibility={visibility} onChange={setVisibility} />
         <InviteCard inviteCode={inviteCode} planetId={initial.id} onReset={setInviteCode} />
       </div>
-
-      {/* 宠物形象：拍照生成 2.5D Q 版 */}
-      <section className="card mt-4 p-5 sm:p-6">
-        <div className="mb-4 flex items-end justify-between">
-          <div>
-            <p className="eyebrow">PET AVATAR</p>
-            <h2 className="title mt-1.5 text-xl">宠物形象</h2>
-          </div>
-          <span className="text-[10px] text-[#b09ec0]">拍照生成 2.5D Q 版</span>
-        </div>
-        <PetAvatarStudio
-          initialAvatar={initial.pet.avatar}
-          onSaved={(url) => setAvatarUrl(url)}
-        />
-      </section>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="card p-5 sm:p-6">
