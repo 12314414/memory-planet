@@ -2,6 +2,11 @@ export type PetProfile = {
   name: string;
   species: 'cat' | 'dog' | 'rabbit';
   persona: string;
+  avatar?: {
+    status?: string;
+    imageUrl?: string;
+    style?: string;
+  } | null;
 };
 
 export type PlanetDTO = {

@@ -56,17 +56,30 @@ export default function PlanetScene({ mode, planet, petProfile, onAction }: Plan
         role={interactive ? 'button' : undefined}
         aria-label={interactive ? `投喂${petProfile.name}` : petProfile.name}
       >
-        <span className="pet-tail" style={{ ['--pet-ear' as string]: '#fff8fc' }} />
-        <span className="pet-ear left" style={{ ['--pet-ear' as string]: '#ffe6f1' }} />
-        <span className="pet-ear right" style={{ ['--pet-ear' as string]: '#ffe6f1' }} />
-        <span className="pet-body" style={{ background: theme.pet }}>
-          <span className="pet-eye left" />
-          <span className="pet-eye right" />
-          <span className="pet-cheek left" />
-          <span className="pet-cheek right" />
-          <span className="pet-mouth" />
-        </span>
-        <span className="pet-crown">✦</span>
+        {petProfile?.avatar?.imageUrl ? (
+          // 已生成 Q 版形象：优先显示，回退到下方 CSS 占位宠物
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={petProfile.avatar.imageUrl}
+            alt={petProfile.name}
+            className="pet-avatar-img"
+            style={{ width: '100%', height: 'auto', display: 'block', filter: 'drop-shadow(0 10px 18px rgba(80,40,120,0.25))' }}
+          />
+        ) : (
+          <>
+            <span className="pet-tail" style={{ ['--pet-ear' as string]: '#fff8fc' }} />
+            <span className="pet-ear left" style={{ ['--pet-ear' as string]: '#ffe6f1' }} />
+            <span className="pet-ear right" style={{ ['--pet-ear' as string]: '#ffe6f1' }} />
+            <span className="pet-body" style={{ background: theme.pet }}>
+              <span className="pet-eye left" />
+              <span className="pet-eye right" />
+              <span className="pet-cheek left" />
+              <span className="pet-cheek right" />
+              <span className="pet-mouth" />
+            </span>
+            <span className="pet-crown">✦</span>
+          </>
+        )}
       </div>
 
       <span className="spark s1">✦</span>
