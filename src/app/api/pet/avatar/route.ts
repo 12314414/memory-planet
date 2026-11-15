@@ -147,8 +147,8 @@ async function mergeAvatarStatus(planetId: string, data: Record<string, unknown>
 }
 
 /**
- * 调 Seedream 5.0 Pro 图生图接口。
- * 以原照片为参考图（image 数组），prompt 负责风格转换与特征保留。
+ * 调图生图接口（自动适配阿里云通义万相 / Seedream）。
+ * 以原照片为参考图，prompt 负责风格转换与特征保留。
  * 返回统一为 imageUrl（b64_json 转 data URL，或直接取 url）。
  */
 async function callSeedreamI2I(photoDataUrl: string, style: PetAvatarStyle): Promise<string> {
@@ -157,6 +157,33 @@ async function callSeedreamI2I(photoDataUrl: string, style: PetAvatarStyle): Pro
   }
 
   const { prompt, negative } = buildI2IPrompt(style);
+
+  // 根据网关地址自动识别服务商，构造对应请求体
+  const isAliyun =
+    IMAGE_API_BASE_URL.includes('dashscope') || IMAGE_API_BASE_URL.includes('aliyun');
+
+  const requestBody = isAliyun
+    ? {
+        // 阿里云百炼 · 通义万相 图像编辑（图生图）
+        model: IMAGE_API_MODEL,
+        prompt,
+        negative_prompt: negative,
+        image: photoDataUrl, // 阿里云：单个 data URL 字符串
+        size: '1024*1024', // 阿里云尺寸格式（用 * 分隔）
+        n: 1,
+        response_format: 'b64_json',
+      }
+    : {
+        // Seedream 5.0 Pro 图生图
+        model: IMAGE_API_MODEL,
+        prompt,
+        negative_prompt: negative,
+        image: [photoDataUrl], // Seedream：数组
+        size: '2K',
+        response_format: 'b64_json',
+        watermark: false,
+        optimize_prompt_options: { mode: 'standard' },
+      };
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), IMAGE_TIMEOUT);
@@ -168,23 +195,13 @@ async function callSeedreamI2I(photoDataUrl: string, style: PetAvatarStyle): Pro
         'Content-Type': 'application/json',
         Authorization: `Bearer ${IMAGE_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: IMAGE_API_MODEL,
-        prompt,
-        negative_prompt: negative,
-        // 图生图核心：原照片作为参考图传入
-        image: [photoDataUrl],
-        size: '2K',
-        response_format: 'b64_json',
-        watermark: false,
-        optimize_prompt_options: { mode: 'standard' },
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
-      throw new Error(`Seedream API ${res.status}: ${errText.slice(0, 300)}`);
+      throw new Error(`Image API ${res.status}: ${errText.slice(0, 300)}`);
     }
 
     const payload = await res.json();
