@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-import { buildI2IPrompt, type PetAvatarStyle } from '@/lib/petAvatarPrompt';
+import { buildI2IPrompt, buildPollinationsPrompt, type PetAvatarStyle } from '@/lib/petAvatarPrompt';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,13 +89,18 @@ export async function POST(request: Request) {
     const base64 = Buffer.from(buffer).toString('base64');
     const dataUrl = `data:${file.type};base64,${base64}`;
 
-    // 5. 图生图：原照片 + 风格 prompt → Q 版形象
-    //    只做图生图，不回退文生图（文生图会丢失"像原来那只"的关键特征）
+    // 5. 生成 Q 版形象
+    //    配置了 IMAGE_API_KEY → 走图生图（精准像原宠物）
+    //    未配置 → 走 Pollinations 免费文生图（通用萌宠，开箱即用）
     let imageUrl = '';
     try {
-      imageUrl = await callSeedreamI2I(dataUrl, style);
+      if (IMAGE_API_KEY) {
+        imageUrl = await callSeedreamI2I(dataUrl, style);
+      } else {
+        imageUrl = await callPollinations(style);
+      }
     } catch (err) {
-      console.error('[pet/avatar] 图生图失败', err);
+      console.error('[pet/avatar] 图像生成失败', err);
       // 失败时保留旧 imageUrl，只更新状态为 FAILED
       await mergeAvatarStatus(planet.id, { status: 'FAILED', style });
       return NextResponse.json({ ok: false, fallback: true, error: '生成失败，保留当前形象，可重试' });
@@ -106,7 +111,7 @@ export async function POST(request: Request) {
       status: 'READY',
       imageUrl,
       style,
-      promptVersion: 'seedream-i2i-v1',
+      promptVersion: IMAGE_API_KEY ? 'seedream-i2i-v1' : 'pollinations-t2i-v1',
       createdAt: new Date().toISOString(),
     };
     await mergeAvatarStatus(planet.id, avatarData);
@@ -219,6 +224,36 @@ async function callSeedreamI2I(photoDataUrl: string, style: PetAvatarStyle): Pro
     }
 
     return imageUrl;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Pollinations 免费文生图（无需 Key、国内直连）。
+ * 直接 GET 返回图片二进制，转 base64 data URL 存回，避免 url 过期/跨域。
+ * 注意：免费方案，生成通用 Q 版萌宠，不参考原照片。
+ */
+async function callPollinations(style: PetAvatarStyle): Promise<string> {
+  const prompt = buildPollinationsPrompt(style);
+  const seed = Math.floor(Math.random() * 1e9);
+  const url =
+    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+    `?width=1024&height=1024&nologo=true&model=flux&seed=${seed}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), IMAGE_TIMEOUT);
+
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(`Pollinations ${res.status}`);
+    }
+    const buf = await res.arrayBuffer();
+    if (!buf || buf.byteLength < 1000) {
+      throw new Error('pollinations_empty_result');
+    }
+    return `data:image/jpeg;base64,${Buffer.from(buf).toString('base64')}`;
   } finally {
     clearTimeout(timeout);
   }

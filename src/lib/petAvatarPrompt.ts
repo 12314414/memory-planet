@@ -59,6 +59,27 @@ export function buildI2IPrompt(
 }
 
 /* ------------------------------------------------------------------ */
+/* Pollinations 免费文生图（无需 Key、国内直连，作为默认可用方案）        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Pollinations 文生图 prompt。
+ * 免费方案：生成通用 Q 版萌宠（不参考原照片，所以不会像特定宠物）。
+ * 若需"精准像原宠物"，配置 IMAGE_API_KEY 后自动切换为图生图。
+ */
+export function buildPollinationsPrompt(style: PetAvatarStyle = 'clay'): string {
+  const styleModifier = STYLE_MODIFIERS[style] || STYLE_MODIFIERS.clay;
+  return (
+    `cute 2.5D chibi pet figure, big rounded head small body 2:1 ratio, ` +
+    `plush soft fur texture, big glossy eyes with bright catchlights, gentle warm smile, ` +
+    `soft studio lighting, warm rim light, shallow depth of field, ` +
+    `${styleModifier}, blind-box collectible clay figure aesthetic, ` +
+    `single adorable pet, centered full-body, soft purple starry gradient background, ` +
+    `high detail, no text, no watermark`
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* 以下为旧版文生图导出，保留仅为兼容历史数据，图生图模式不再调用        */
 /* ------------------------------------------------------------------ */
 
