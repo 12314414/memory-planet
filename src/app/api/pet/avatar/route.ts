@@ -1,26 +1,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-import {
-  VISION_PROMPT,
-  buildImagePrompt,
-  normalizePetDesc,
-  type PetDesc,
-  type PetAvatarStyle,
-} from '@/lib/petAvatarPrompt';
+import { buildI2IPrompt, type PetAvatarStyle } from '@/lib/petAvatarPrompt';
 
 export const dynamic = 'force-dynamic';
 
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_SIZE = 30 * 1024 * 1024; // 30MB（Seedream 单张上限）
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const IMAGE_API_BASE_URL = process.env.IMAGE_API_BASE_URL || '';
 const IMAGE_API_KEY = process.env.IMAGE_API_KEY || '';
 const IMAGE_API_MODEL = process.env.IMAGE_API_MODEL || '';
-const IMAGE_API_PATH = process.env.IMAGE_API_PATH || '/images/generations';
+const IMAGE_API_PATH = process.env.IMAGE_API_PATH || '/v1/images/generations';
 
-const VISION_TIMEOUT = 15000;
-const IMAGE_TIMEOUT = 60000;
+const IMAGE_TIMEOUT = 120000; // 图生图耗时较长，120s
 
 /* ------------------------------------------------------------------ */
 /* GET：返回当前用户星球的 petAvatarJson                                */
@@ -54,7 +47,7 @@ export async function GET() {
 }
 
 /* ------------------------------------------------------------------ */
-/* POST：拍照生成 2.5D Q 版宠物形象                                     */
+/* POST：图生图 —— 以原照片为参考，生成 2.5D Q 版宠物形象                */
 /* ------------------------------------------------------------------ */
 export async function POST(request: Request) {
   let planetId = '';
@@ -73,10 +66,10 @@ export async function POST(request: Request) {
     }
     planetId = planet.id;
 
-    // 3. 校验图片类型/大小
+    // 3. 解析 FormData 并校验图片
     const formData = await request.formData();
     const file = formData.get('photo') as File | null;
-    const style = (formData.get('style') as PetAvatarStyle) || 'blindbox';
+    const style = (formData.get('style') as PetAvatarStyle) || 'clay';
 
     if (!file) {
       return NextResponse.json({ error: '请选择照片' }, { status: 400 });
@@ -85,35 +78,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '只支持 jpeg/png/webp 格式' }, { status: 400 });
     }
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: '图片不能超过 5MB' }, { status: 400 });
+      return NextResponse.json({ error: '图片不能超过 30MB' }, { status: 400 });
     }
 
     // 写入 PENDING 状态
     await mergeAvatarStatus(planet.id, { status: 'PENDING' });
 
-    // 4. 视觉理解（失败用默认值继续）
+    // 4. 照片转 Base64 data URL（格式小写，Seedream 要求）
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
     const dataUrl = `data:${file.type};base64,${base64}`;
 
-    let petDesc: PetDesc = normalizePetDesc(null);
-    try {
-      const visionResult = await callVisionApi(dataUrl);
-      if (visionResult) {
-        petDesc = normalizePetDesc(visionResult);
-      }
-    } catch (err) {
-      console.warn('[pet/avatar] 视觉理解失败，使用默认描述', err);
-    }
-
-    // 5. 图像生成（只把结构化宠物描述送进 prompt，不拼 ownerId / 昵称 / 星球 id）
+    // 5. 图生图：原照片 + 风格 prompt → Q 版形象
+    //    只做图生图，不回退文生图（文生图会丢失"像原来那只"的关键特征）
     let imageUrl = '';
     try {
-      imageUrl = await callImageApi(petDesc, style);
+      imageUrl = await callSeedreamI2I(dataUrl, style);
     } catch (err) {
-      console.error('[pet/avatar] 图像生成失败', err);
-      await mergeAvatarStatus(planet.id, { status: 'FAILED' });
-      return NextResponse.json({ ok: false, fallback: true, error: '图像生成失败，请重试' });
+      console.error('[pet/avatar] 图生图失败', err);
+      // 失败时保留旧 imageUrl，只更新状态为 FAILED
+      await mergeAvatarStatus(planet.id, { status: 'FAILED', style });
+      return NextResponse.json({ ok: false, fallback: true, error: '生成失败，保留当前形象，可重试' });
     }
 
     // 6. 保存结果，写回 petAvatarJson
@@ -121,7 +106,7 @@ export async function POST(request: Request) {
       status: 'READY',
       imageUrl,
       style,
-      promptVersion: 'v1',
+      promptVersion: 'seedream-i2i-v1',
       createdAt: new Date().toISOString(),
     };
     await mergeAvatarStatus(planet.id, avatarData);
@@ -141,7 +126,7 @@ export async function POST(request: Request) {
 /* 辅助函数                                                            */
 /* ------------------------------------------------------------------ */
 
-/** 合并写入 avatar 状态，保留已有字段 */
+/** 合并写入 avatar 状态，保留已有字段（含旧 imageUrl） */
 async function mergeAvatarStatus(planetId: string, data: Record<string, unknown>) {
   const existing = await prisma.planet.findUnique({ where: { id: planetId } });
   let existingData: Record<string, unknown> = {};
@@ -161,63 +146,17 @@ async function mergeAvatarStatus(planetId: string, data: Record<string, unknown>
   });
 }
 
-/** 调视觉模型理解照片，输出结构化 JSON */
-async function callVisionApi(imageDataUrl: string): Promise<Partial<PetDesc> | null> {
+/**
+ * 调 Seedream 5.0 Pro 图生图接口。
+ * 以原照片为参考图（image 数组），prompt 负责风格转换与特征保留。
+ * 返回统一为 imageUrl（b64_json 转 data URL，或直接取 url）。
+ */
+async function callSeedreamI2I(photoDataUrl: string, style: PetAvatarStyle): Promise<string> {
   if (!IMAGE_API_BASE_URL || !IMAGE_API_KEY || !IMAGE_API_MODEL) {
-    throw new Error('IMAGE_API 未配置');
+    throw new Error('IMAGE_API 未配置（IMAGE_API_BASE_URL / IMAGE_API_KEY / IMAGE_API_MODEL）');
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), VISION_TIMEOUT);
-
-  try {
-    const res = await fetch(`${IMAGE_API_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${IMAGE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: IMAGE_API_MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: VISION_PROMPT },
-              { type: 'image_url', image_url: { url: imageDataUrl } },
-            ],
-          },
-        ],
-        max_tokens: 500,
-        temperature: 0.3,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      throw new Error(`Vision API ${res.status}`);
-    }
-
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || '';
-
-    // 从返回文本中提取 JSON（允许模型包裹在 ```json ... ``` 中）
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-
-    return JSON.parse(jsonMatch[0]);
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-/** 调图像生成接口，返回图片 URL */
-async function callImageApi(petDesc: PetDesc, style: PetAvatarStyle): Promise<string> {
-  if (!IMAGE_API_BASE_URL || !IMAGE_API_KEY || !IMAGE_API_MODEL) {
-    throw new Error('IMAGE_API 未配置');
-  }
-
-  const { prompt, negative } = buildImagePrompt(petDesc, style);
+  const { prompt, negative } = buildI2IPrompt(style);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), IMAGE_TIMEOUT);
@@ -233,23 +172,36 @@ async function callImageApi(petDesc: PetDesc, style: PetAvatarStyle): Promise<st
         model: IMAGE_API_MODEL,
         prompt,
         negative_prompt: negative,
-        size: '1024x1024',
-        n: 1,
+        // 图生图核心：原照片作为参考图传入
+        image: [photoDataUrl],
+        size: '2K',
+        response_format: 'b64_json',
+        watermark: false,
+        optimize_prompt_options: { mode: 'standard' },
       }),
       signal: controller.signal,
     });
 
     if (!res.ok) {
-      throw new Error(`Image API ${res.status}`);
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Seedream API ${res.status}: ${errText.slice(0, 300)}`);
     }
 
-    const data = await res.json();
-    const url = data.data?.[0]?.url;
-    if (!url) {
-      throw new Error('图像接口未返回 URL');
+    const payload = await res.json();
+
+    // 兼容两种返回：b64_json（优先，避免 url 过期/跨域）或 url
+    const item = payload.data?.[0];
+    const imageUrl = item?.b64_json
+      ? `data:image/png;base64,${item.b64_json}`
+      : item?.url
+        ? item.url
+        : null;
+
+    if (!imageUrl) {
+      throw new Error('image_api_empty_result');
     }
 
-    return url;
+    return imageUrl;
   } finally {
     clearTimeout(timeout);
   }
