@@ -289,7 +289,7 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
           to { opacity: 1; transform: translateY(0); }
         }
         .invite-fade { animation: inviteFadeIn 200ms ease-out; }
-      `}
+      `}</style>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="card p-5 sm:p-6">
