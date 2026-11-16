@@ -557,7 +557,7 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
             petName: pet.name,
             petPersona: pet.persona,
           }),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(8000),
         });
         const data = await upstream.json().catch(() => null);
         if (upstream.ok && data?.text) {
