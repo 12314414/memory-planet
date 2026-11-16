@@ -19,6 +19,9 @@ import type { PetProfile } from './types';
 
 const STORAGE_KEY = 'hx_demo_v1';
 
+/** Vercel Serverless AI 代理地址（构建期注入；为空则纯模板降级） */
+const AI_PROXY_URL = (process.env.NEXT_PUBLIC_AI_PROXY_URL || '').replace(/\/+$/, '');
+
 type DemoAiCache = {
   planetId: string;
   visitorId: string;
@@ -536,11 +539,48 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
       const cached = readCached(state, planet.id, cacheOwner, type);
       if (cached) return json({ text: cached, fallback: false, source: 'cache' });
     }
+    const pet = parsePet(planet.petProfileJson);
+
+    // 静态站没有服务端，AI 走 Vercel Serverless 代理；失败/未配置则模板降级
+    if (AI_PROXY_URL) {
+      try {
+        const upstream = await fetch(`${AI_PROXY_URL}/api/ai/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type,
+            planetId: planet.id,
+            planetName: planet.name,
+            visitorName: user.nickname,
+            content: typeof body?.content === 'string' ? body.content : undefined,
+            briefData: type === 'brief' ? briefDataOf(state, planet) : undefined,
+            petName: pet.name,
+            petPersona: pet.persona,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+        const data = await upstream.json().catch(() => null);
+        if (upstream.ok && data?.text) {
+          if (!data.fallback && (type === 'welcome' || type === 'brief')) {
+            cacheText(state, planet.id, cacheOwner, type, data.text);
+            save();
+          }
+          return json({
+            text: data.text,
+            fallback: Boolean(data.fallback),
+            source: data.fallback ? 'fallback' : 'ai',
+          });
+        }
+      } catch {
+        // 代理不可达：继续走模板
+      }
+    }
+
     const text = fallbackText({
       type: type as 'welcome' | 'reply' | 'brief' | 'polish',
       planetName: planet.name,
       themeLabel: '',
-      pet: parsePet(planet.petProfileJson),
+      pet,
       visitorName: user.nickname,
       content: typeof body?.content === 'string' ? body.content : undefined,
       briefData: type === 'brief' ? briefDataOf(state, planet) : undefined,
@@ -552,8 +592,28 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
     return json({ text, fallback: true, source: 'fallback' });
   }
 
-  // AI 图片：静态版没有服务端 Key，直接返回降级
+  // AI 图片：走同一个 Vercel 代理，失败返回空地址由前端显示剪影
   if (path === '/api/ai/image' && method === 'POST') {
+    if (AI_PROXY_URL) {
+      try {
+        const upstream = await fetch(`${AI_PROXY_URL}/api/ai/image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: body?.imageBase64,
+            petName: body?.petName,
+            style: body?.style,
+          }),
+          signal: AbortSignal.timeout(25000),
+        });
+        const data = await upstream.json().catch(() => null);
+        if (upstream.ok && data?.imageUrl) {
+          return json({ imageUrl: data.imageUrl, fallback: false });
+        }
+      } catch {
+        // 代理不可达：走剪影占位
+      }
+    }
     return json({ imageUrl: '', fallback: true });
   }
 
