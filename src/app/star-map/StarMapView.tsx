@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import FloatingPlanet, { hashId } from '@/components/FloatingPlanet';
 import PlanetScene from '@/components/PlanetScene';
 import { apiFetch, appPath, DEMO_MODE } from '@/lib/api-client';
 import { resolveInviteCode } from '@/lib/demo-store';
+import { getTheme } from '@/lib/theme';
 import { VISIBILITY_LABEL, type Visibility } from '@/lib/constants';
 import type { PetProfile, PublicPlanetDTO } from '@/lib/types';
 
@@ -31,100 +31,6 @@ const ACTION_TEXT: Record<string, string> = {
   FEED: '投喂了你的宠物',
   MESSAGE: '留下了留言',
 };
-
-type Pos = { top: number; left: number };
-
-/** 只有 1 颗：居中 */
-const LAYOUT_ONE: Pos[] = [{ top: 32, left: 40 }];
-/** 2 颗：中心两侧 */
-const LAYOUT_TWO: Pos[] = [
-  { top: 24, left: 22 },
-  { top: 42, left: 52 },
-];
-/** 3 颗：围绕中心的三角 */
-const LAYOUT_THREE: Pos[] = [
-  { top: 16, left: 38 },
-  { top: 44, left: 12 },
-  { top: 46, left: 60 },
-];
-/** 4–6 颗：中部区域错落 */
-const LAYOUT_MID: Pos[] = [
-  { top: 12, left: 30 },
-  { top: 10, left: 62 },
-  { top: 34, left: 8 },
-  { top: 38, left: 46 },
-  { top: 58, left: 24 },
-  { top: 56, left: 66 },
-];
-/** 7 颗以上：全区域散布，互不重叠 */
-const LAYOUT_FULL: Pos[] = [
-  { top: 9, left: 10 },
-  { top: 5, left: 46 },
-  { top: 13, left: 78 },
-  { top: 30, left: 30 },
-  { top: 28, left: 62 },
-  { top: 44, left: 6 },
-  { top: 47, left: 82 },
-  { top: 60, left: 40 },
-  { top: 64, left: 68 },
-  { top: 78, left: 16 },
-];
-
-function layoutFor(count: number): Pos[] {
-  if (count <= 1) return LAYOUT_ONE;
-  if (count === 2) return LAYOUT_TWO;
-  if (count === 3) return LAYOUT_THREE;
-  if (count <= 6) return LAYOUT_MID;
-  return LAYOUT_FULL;
-}
-
-/** 装饰天体：月亮 / 星星 / 小号手绘星球，不可点击，让星空始终丰富 */
-const DECOR = [
-  { asset: 'moon', top: 2, left: 84, size: 46, opacity: 0.9, delay: -2 },
-  { asset: 'star', top: 10, left: 4, size: 22, opacity: 0.95, delay: -1 },
-  { asset: 'star', top: 66, left: 90, size: 18, opacity: 0.9, delay: -4 },
-  { asset: 'violet-small', top: 84, left: 76, size: 30, opacity: 0.8, delay: -3 },
-  { asset: 'yellow', top: 90, left: 36, size: 26, opacity: 0.75, delay: -5 },
-  { asset: 'ring-teal', top: 4, left: 58, size: 36, opacity: 0.85, delay: -2.5 },
-  { asset: 'earth-blue', top: 88, left: 6, size: 28, opacity: 0.75, delay: -1.5 },
-  { asset: 'star', top: 38, left: 92, size: 14, opacity: 0.85, delay: -3.5 },
-];
-/** 真实星球 ≥7 颗时只保留小装饰，避免拥挤 */
-const DECOR_COMPACT = [0, 1, 2, 7];
-
-/** 细碎星尘（固定坐标，刷新不动） */
-const ARENA_STARS = [
-  { top: 4, left: 26, size: 3, delay: 0 },
-  { top: 8, left: 66, size: 2, delay: 1.2 },
-  { top: 18, left: 4, size: 2, delay: 2.1 },
-  { top: 21, left: 48, size: 3, delay: 0.6 },
-  { top: 24, left: 92, size: 2, delay: 1.8 },
-  { top: 36, left: 16, size: 2, delay: 2.8 },
-  { top: 38, left: 74, size: 3, delay: 0.3 },
-  { top: 52, left: 26, size: 2, delay: 1.5 },
-  { top: 55, left: 56, size: 2, delay: 2.4 },
-  { top: 58, left: 94, size: 3, delay: 0.9 },
-  { top: 70, left: 8, size: 2, delay: 1.1 },
-  { top: 72, left: 52, size: 3, delay: 2.7 },
-  { top: 82, left: 84, size: 2, delay: 0.4 },
-  { top: 86, left: 34, size: 2, delay: 1.9 },
-  { top: 90, left: 62, size: 3, delay: 2.2 },
-  { top: 33, left: 44, size: 2, delay: 3.1 },
-];
-
-/** 预设坐标 + ±2% 哈希微抖动，兼顾不重叠与自然感，刷新不跳动 */
-function positionFor(planet: PublicPlanetDTO, base: Pos) {
-  const h = hashId(planet.id);
-  const jx = (h % 5) - 2;
-  const jy = ((h >> 3) % 5) - 2;
-  return { top: `${base.top + jy}%`, left: `${base.left + jx}%` };
-}
-
-/** 大小按热度微调：72–112px，相差不过大 */
-function sizeFor(planet: PublicPlanetDTO) {
-  const heat = Math.min(planet.statsVisits + planet.statsStars * 2, 36);
-  return Math.round(72 + (heat / 36) * 40);
-}
 
 export default function StarMapView({ nickname, planet, pet, recentVisitors }: StarMapViewProps) {
   const [code, setCode] = useState('');
@@ -173,9 +79,6 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
     window.location.href = appPath(`/planet/visit/${value}`);
   };
 
-  const layout = layoutFor(planets.length);
-  const decor = planets.length >= 7 ? DECOR.filter((_, i) => DECOR_COMPACT.includes(i)) : DECOR;
-
   return (
     <main className="wrap pb-20 pt-10">
       <div className="mb-8 fade-up">
@@ -186,8 +89,7 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        {/* 左列：我的星球（大星球）+ 邀请码 + 最近访客 */}
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <div className="space-y-4">
           <section className="card p-5 sm:p-6">
             <div className="flex items-start justify-between">
@@ -238,6 +140,70 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
               邀请码由主人生成，私密星球即使有码也无法进入。
             </p>
           </section>
+        </div>
+
+        <div className="space-y-4">
+          <section className="card p-5 sm:p-6">
+            <div className="mb-4 flex items-end justify-between">
+              <div>
+                <p className="eyebrow">PUBLIC PLANETS</p>
+                <h2 className="title mt-1.5 text-xl">公开星球</h2>
+              </div>
+              <span className="text-[11px] text-[#b09ec0]">按更新时间 · 最多 10 个</span>
+            </div>
+
+            {loading ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[0, 1, 2, 3].map((item) => (
+                  <div key={item} className="h-[104px] animate-pulse rounded-2xl bg-white/55" />
+                ))}
+              </div>
+            ) : listError ? (
+              <p className="py-8 text-center text-xs text-[#b09ec0]">{listError}</p>
+            ) : planets.length === 0 ? (
+              <p className="py-8 text-center text-xs leading-relaxed text-[#b09ec0]">
+                还没有公开的星球。
+                <br />
+                把自己的星球设为「公开」，就会出现在这里。
+              </p>
+            ) : (
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {planets.map((item) => {
+                  const theme = getTheme(item.theme);
+                  return (
+                    <li key={item.id}>
+                      <Link
+                        href={`/planet/${item.id}`}
+                        className="flex items-center gap-3 rounded-2xl border border-white/90 bg-white/65 px-3 py-3 transition hover:-translate-y-0.5 hover:bg-white"
+                      >
+                        <span
+                          className="relative block h-12 w-12 shrink-0 rounded-full"
+                          style={{ background: theme.sphere, boxShadow: `0 8px 18px -10px ${theme.glow}` }}
+                        >
+                          <span
+                            className="absolute left-1/2 top-1/2 h-[14px] w-[56px] -translate-x-1/2 -translate-y-1/2 rotate-[-17deg] rounded-full border-2"
+                            style={{ borderColor: theme.ring }}
+                          />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-medium text-[#57465f]">
+                            {item.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] text-[#a596b0]">
+                            {item.ownerName} · 宠物 {item.petName}
+                          </span>
+                          <span className="mt-1 block text-[10px] text-[#b7a8c2]">
+                            ✨ {item.statsVisits} 次到访 · ⭐ {item.statsStars}
+                          </span>
+                        </span>
+                        <span className="text-[#c9b6e8]">→</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
 
           <section className="card p-5 sm:p-6">
             <div className="mb-3 flex items-end justify-between">
@@ -276,102 +242,6 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
             )}
           </section>
         </div>
-
-        {/* 右侧：星空散布区 */}
-        <section className="card fade-up fade-up-1 relative overflow-hidden p-5 sm:p-6">
-          <div className="relative z-10 flex items-end justify-between">
-            <div>
-              <p className="eyebrow">PUBLIC PLANETS</p>
-              <h2 className="title mt-1.5 text-xl">公开星球 · 星空散布</h2>
-            </div>
-            <span className="text-[11px] text-[#b09ec0]">
-              {loading ? '正在点亮…' : `${planets.length} / 10 颗`}
-            </span>
-          </div>
-
-          <div className="star-arena relative mt-4 h-[540px] overflow-hidden rounded-[22px] sm:h-[620px]">
-            {/* 星轨：两个缓慢旋转的虚线轨道 */}
-            <span className="arena-orbit" style={{ width: 440, height: 440, top: '-14%', left: '-12%' }} />
-            <span
-              className="arena-orbit"
-              style={{ width: 560, height: 560, bottom: '-26%', right: '-16%', animationDuration: '160s' }}
-            />
-
-            {/* 细碎星尘 + 十字星光 */}
-            {ARENA_STARS.map((star, index) => (
-              <span
-                key={index}
-                className="arena-star"
-                style={{
-                  top: `${star.top}%`,
-                  left: `${star.left}%`,
-                  width: star.size,
-                  height: star.size,
-                  animationDelay: `${star.delay}s`,
-                }}
-              />
-            ))}
-            <span className="arena-cross" style={{ top: '16%', left: '34%', animationDelay: '0.8s' }}>✦</span>
-            <span className="arena-cross" style={{ top: '56%', left: '12%', animationDelay: '2s', fontSize: 12 }}>✦</span>
-            <span className="arena-cross" style={{ top: '80%', left: '58%', animationDelay: '1.4s', fontSize: 11 }}>✦</span>
-
-            {/* 装饰天体：月亮、星星、小星球，始终点缀星空 */}
-            {decor.map((item) => (
-              <span
-                key={`${item.asset}-${item.top}`}
-                className="arena-decor"
-                style={{
-                  top: `${item.top}%`,
-                  left: `${item.left}%`,
-                  width: item.size,
-                  opacity: item.opacity,
-                  animationDelay: `${item.delay}s`,
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={appPath(`/planets/${item.asset}.png`)} alt="" draggable={false} className="w-full select-none" />
-              </span>
-            ))}
-
-            {loading ? (
-              LAYOUT_MID.slice(0, 4).map((pos, index) => (
-                <span
-                  key={index}
-                  className="absolute h-20 w-20 animate-pulse rounded-full bg-white/60"
-                  style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
-                />
-              ))
-            ) : listError ? (
-              <p className="absolute inset-0 grid place-items-center text-xs text-[#b09ec0]">{listError}</p>
-            ) : planets.length === 0 ? (
-              <p className="absolute inset-0 grid place-items-center px-8 text-center text-xs leading-relaxed text-[#b09ec0]">
-                这片星空还静悄悄的。
-                <br />
-                把自己的星球设为「公开」，就会成为第一颗被看见的星球。
-              </p>
-            ) : (
-              planets.map((item, index) => {
-                const pos = positionFor(item, layout[index % layout.length]);
-                return (
-                  <FloatingPlanet
-                    key={item.id}
-                    planet={item}
-                    top={pos.top}
-                    left={pos.left}
-                    size={sizeFor(item)}
-                    delay={-(hashId(item.id) % 7)}
-                  />
-                );
-              })
-            )}
-
-            {!loading && !listError && planets.length > 0 && (
-              <p className="pointer-events-none absolute bottom-3 left-0 right-0 text-center text-[10px] tracking-wide text-[#b7a8c2]">
-                点任意一颗星球，去它家里串门 →
-              </p>
-            )}
-          </div>
-        </section>
       </div>
     </main>
   );
