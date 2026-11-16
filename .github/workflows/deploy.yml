@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build static site
+        run: npm run build:gh-pages
+        env:
+          GH_PAGES: "true"
+          NEXT_PUBLIC_SUPABASE_URL: "https://begrmhzzcqbiozdfmafl.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_aykQBjKMeV4kT5AjGB4xaQ_wXT3XgKl"
+          ZAI_BASE_URL: "https://open.bigmodel.cn/api/paas/v4"
+          ZAI_MODEL: "glm-4-flash"
+          ZAI_IMAGE_MODEL: "glm-image"
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
