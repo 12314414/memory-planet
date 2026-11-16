@@ -274,19 +274,22 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
       <section className="mt-4 space-y-4">
         <AccessControlSheet visibility={visibility} onChange={setVisibility} />
 
-        {/* 邀请码卡片：仅 INVITE 可见，带 CSS 折叠动画 */}
-        <div
-          className="grid transition-all duration-300 ease-out"
-          style={{
-            gridTemplateRows: visibility === 'INVITE' ? '1fr' : '0fr',
-            opacity: visibility === 'INVITE' ? 1 : 0,
-          }}
-        >
-          <div className="overflow-hidden">
+        {/* 邀请码卡片：仅 INVITE 可见 */}
+        {visibility === 'INVITE' && (
+          <div className="invite-fade">
             <InviteCard inviteCode={inviteCode} planetId={initial.id} onReset={setInviteCode} />
           </div>
-        </div>
+        )}
       </section>
+
+      {/* 内联关键帧动画 */}
+      <style>{`
+        @keyframes inviteFadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .invite-fade { animation: inviteFadeIn 200ms ease-out; }
+      `}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="card p-5 sm:p-6">
