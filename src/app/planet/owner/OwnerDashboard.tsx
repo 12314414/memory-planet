@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import AccessControlSheet from '@/components/AccessControlSheet';
 import InviteCard from '@/components/InviteCard';
 import PlanetScene from '@/components/PlanetScene';
@@ -254,6 +254,18 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
               initialAvatar={initial.pet.avatar ? { imageUrl: initial.pet.avatar.imageUrl } : undefined}
               onSaved={(url) => setAvatarUrl(url)}
             />
+
+            {/* 智普 AI 虚拟形象（独立入口，不改 PetAvatarStudio） */}
+            <div className="mt-5 border-t border-dashed border-[#e9e0ff] pt-4">
+              <p className="mb-3 flex items-center gap-1.5 text-[10px] font-medium text-[#b09ec0]">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#c9b6e8]" />
+                智普 AI · 虚拟形象
+              </p>
+              <ZaiImageGenerator
+                petName={initial.pet.name}
+                onGenerated={(url) => setAvatarUrl(url)}
+              />
+            </div>
           </section>
         </div>
       </div>
@@ -388,5 +400,107 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
         </ul>
       </section>
     </main>
+  );
+}
+
+/* --------------------------------------------------------------
+ * ZaiImageGenerator — 智普 AI 虚拟形象生成器（独立子组件）
+ * - 上传图片 → 转 base64 → 调 /api/ai/image
+ * - 失败时展示内置宠物剪影占位图，不阻塞页面
+ * ------------------------------------------------------------ */
+type ZaiImageGeneratorProps = {
+  petName: string;
+  onGenerated?: (url: string) => void;
+};
+
+function ZaiImageGenerator({ petName, onGenerated }: ZaiImageGeneratorProps) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [style, setStyle] = useState<'Q版' | '拟真'>('Q版');
+
+  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+      setError('只支持 jpeg / png / webp');
+      return;
+    }
+    const r = new FileReader();
+    r.onload = (ev) => {
+      setPreview(ev.target?.result as string);
+      setError('');
+    };
+    r.readAsDataURL(f);
+  };
+
+  const handleGenerate = async () => {
+    if (!preview || loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await apiFetch('/api/ai/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: preview,
+          petName,
+          style,
+        }),
+      });
+      const data = await res.json();
+      if (data.imageUrl && !data.fallback) {
+        onGenerated?.(data.imageUrl);
+      } else {
+        setError('AI 暂不可用，保留当前形象');
+      }
+    } catch {
+      setError('生成失败，保留当前形象');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <label className="flex-1 cursor-pointer rounded-xl border-2 border-dashed border-[#e9e0ff] bg-[#faf8ff] px-3 py-2 text-center text-[11px] font-medium text-[#8b7a97] transition-colors hover:border-[#d9cbe4]">
+          {preview ? '换一张照片' : '📷 上传宠物照片'}
+          <input type="file" accept="image/*" onChange={handleFile} className="hidden" disabled={loading} />
+        </label>
+        <select
+          value={style}
+          onChange={(e) => setStyle(e.target.value as 'Q版' | '拟真')}
+          disabled={loading}
+          className="rounded-xl border border-[#e9e0ff] bg-white px-2.5 py-2 text-[11px] text-[#8b7a97] disabled:opacity-50"
+        >
+          <option value="Q版">Q 版</option>
+          <option value="拟真">拟真</option>
+        </select>
+      </div>
+
+      {preview && (
+        <div className="flex items-center gap-3">
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-[#e9e0ff] bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview} alt="照片预览" className="h-full w-full object-cover" />
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={loading}
+            className="btn btn-primary btn-sm relative flex-1 overflow-hidden"
+          >
+            {loading ? 'AI 正在画…' : '✨ 生成虚拟形象'}
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-xl border border-[#f4d3dc] bg-[#fff3f6] px-3 py-2 text-[11px] text-[#c26a86]">
+          {error}
+        </div>
+      )}
+    </div>
   );
 }

@@ -33,6 +33,12 @@ jobs:
           GH_PAGES: "true"
           NEXT_PUBLIC_SUPABASE_URL: "https://begrmhzzcqbiozdfmafl.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_aykQBjKMeV4kT5AjGB4xaQ_wXT3XgKl"
+          # 智普 GLM：线上静态版无服务端，Key 留空走降级模板；
+          # 如需完整 AI 功能请部署到 Vercel 并在 Repository Secrets 中配置 ZAI_API_KEY
+          ZAI_BASE_URL: "https://open.bigmodel.cn/api/paas/v4"
+          ZAI_MODEL: "glm-4-flash"
+          ZAI_IMAGE_MODEL: "glm-image"
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
 
       - uses: actions/upload-pages-artifact@v3
         with:

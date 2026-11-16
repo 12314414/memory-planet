@@ -41,51 +41,106 @@ function userPrompt(ctx: AiContext) {
 }
 
 export function aiEnabled() {
-  return Boolean(process.env.AI_API_KEY && process.env.AI_BASE_URL && process.env.AI_MODEL);
+  return Boolean(
+    process.env.ZAI_API_KEY &&
+      process.env.ZAI_BASE_URL &&
+      process.env.ZAI_MODEL,
+  );
 }
 
-/** 直接调用 OpenAI 兼容接口（仅服务端执行，key 不会离开服务器） */
+/**
+ * 判断错误是否需要重试（限流 / 智普服务过载）
+ * - HTTP 429：限流
+ * - err_code 1305：智普服务过载
+ */
+function isRetryable(status: number, body: string): boolean {
+  if (status === 429) return true;
+  try {
+    const j = JSON.parse(body);
+    return j?.error?.code === 1305 || j?.error?.err_code === 1305;
+  } catch {
+    return false;
+  }
+}
+
+const ZAI_TIMEOUT = 8000; // 8 秒，用户要求超时走降级
+const ZAI_MAX_TOKENS = 200; // 短文本场景，够用
+
+/**
+ * 直接调用智普 GLM（OpenAI 兼容格式）。仅服务端执行，Key 不离开服务器。
+ * - temperature 必须在 (0, 1) 区间
+ * - 429/1305 自动重试 1 次，间隔 2s
+ * - 8 秒超时 / 空响应 / 任何异常 → 降级模板
+ */
 export async function generateAiText(ctx: AiContext): Promise<AiResult> {
   if (!aiEnabled()) return { text: fallbackText(ctx), source: 'fallback' };
 
-  const base = (process.env.AI_BASE_URL || '').replace(/\/+$/, '');
-  const timeout = Number(process.env.AI_TIMEOUT_MS || 9000);
+  const base = (process.env.ZAI_BASE_URL || '').replace(/\/+$/, '');
+  const model = process.env.ZAI_MODEL!;
 
-  try {
+  const doCall = async (): Promise<AiResult> => {
     const res = await fetch(`${base}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.AI_API_KEY}`,
+        Authorization: `Bearer ${process.env.ZAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL,
+        model,
         messages: [
           { role: 'system', content: systemPrompt(ctx) },
           { role: 'user', content: userPrompt(ctx) },
         ],
-        temperature: ctx.type === 'brief' ? 0.5 : 0.85,
-        max_tokens: ctx.type === 'brief' ? 320 : 160,
+        temperature: ctx.type === 'brief' ? 0.5 : 0.7, // 严格 (0,1) 区间
+        max_tokens: ctx.type === 'brief' ? ZAI_MAX_TOKENS : 160,
+        stream: false,
       }),
-      signal: AbortSignal.timeout(timeout),
+      signal: AbortSignal.timeout(ZAI_TIMEOUT),
       cache: 'no-store',
     });
 
-    if (!res.ok) throw new Error(`AI ${res.status}`);
+    const bodyText = await res.text().catch(() => '');
 
-    const data = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
+    if (!res.ok) {
+      throw Object.assign(new Error(`ZAI ${res.status}`), {
+        status: res.status,
+        body: bodyText,
+      });
+    }
+
+    let data: { choices?: { message?: { content?: string } }[] };
+    try {
+      data = JSON.parse(bodyText);
+    } catch {
+      throw new Error('ZAI invalid_json');
+    }
+
     const raw = data.choices?.[0]?.message?.content;
-    if (!raw || !raw.trim()) throw new Error('AI empty');
+    if (!raw || !raw.trim()) throw new Error('ZAI empty');
     return { text: clip(raw, LIMIT[ctx.type]), source: 'ai' };
-  } catch {
+  };
+
+  try {
+    return await doCall();
+  } catch (firstErr: unknown) {
+    const err = firstErr as Error & { status?: number; body?: string };
+    // 重试一次（仅限可重试错误）
+    if (isRetryable(err.status ?? 0, err.body ?? '')) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        return await doCall();
+      } catch {
+        // 重试也失败，降级
+      }
+    } else {
+      console.warn('[ai] zhipu call failed:', err.message);
+    }
     return { text: fallbackText(ctx), source: 'fallback' };
   }
 }
 
 /**
- * 内部调用统一走 /api/ai/chat 代理（不直连厂商），保证“AI 只有一个出口”。
+ * 内部调用统一走 /api/ai/chat 代理（不直连厂商），保证"AI 只有一个出口"。
  * 代理本身失败（断网/超时）时返回 null，由调用方使用模板降级。
  */
 export async function callAiProxy(
@@ -107,7 +162,7 @@ export async function callAiProxy(
         ...(cookieHeader ? { cookie: cookieHeader } : {}),
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(Number(process.env.AI_TIMEOUT_MS || 9000) + 3000),
+      signal: AbortSignal.timeout(Number(process.env.ZAI_TIMEOUT_MS || 9000) + 3000),
       cache: 'no-store',
     });
     if (!res.ok) return null;
