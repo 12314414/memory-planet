@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AccessControlSheet from '@/components/AccessControlSheet';
 import InviteCard from '@/components/InviteCard';
+import MemoryEditorModal from '@/components/MemoryEditorModal';
+import PetAvatarModal from '@/components/PetAvatarModal';
 import PlanetScene from '@/components/PlanetScene';
-import PetAvatarStudio from '@/components/PetAvatarStudio';
 import { apiFetch } from '@/lib/api-client';
 import { ACTION_ICON, ACTION_LABEL, VISIBILITY_LABEL, type Visibility } from '@/lib/constants';
 import type { OwnerDashboardDTO, PetProfile } from '@/lib/types';
@@ -41,8 +42,11 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
   const [briefSource, setBriefSource] = useState('');
   const [briefLoading, setBriefLoading] = useState(false);
   const [polling, setPolling] = useState(true);
+  const [memoryModalOpen, setMemoryModalOpen] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [petAvatar, setPetAvatar] = useState(initial.pet.avatarUrl || '');
+  const [deletingMemory, setDeletingMemory] = useState('');
   const [error, setError] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState(initial.pet.avatar?.imageUrl || '');
   const timer = useRef<number | null>(null);
   const briefLoaded = useRef(false);
 
@@ -130,6 +134,24 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
     }
   };
 
+  const deleteMemory = async (memoryId: string) => {
+    if (deletingMemory) return;
+    setDeletingMemory(memoryId);
+    setError('');
+    try {
+      const res = await apiFetch(`/api/planet/owner/memory/${memoryId}`, { method: 'DELETE' });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error || '删除失败');
+      setData((prev) =>
+        prev ? { ...prev, memories: prev.memories.filter((item) => item.id !== memoryId) } : prev,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除失败');
+    } finally {
+      setDeletingMemory('');
+    }
+  };
+
   const stats = data?.today;
   const total = data?.planet;
 
@@ -171,11 +193,18 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
           <PlanetScene
             mode="owner"
             planet={initial}
-            petProfile={{ ...initial.pet, avatar: { imageUrl: avatarUrl } }}
+            petProfile={{ ...initial.pet, avatarUrl: petAvatar || undefined }}
           />
           <div className="absolute left-4 top-4">
             <span className="chip">主星球 001</span>
           </div>
+          <button
+            type="button"
+            onClick={() => setAvatarModalOpen(true)}
+            className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/70 px-3 py-1.5 text-[11px] text-[#6d5a7b] shadow-[0_10px_22px_-18px_rgba(94,68,110,0.6)] transition hover:bg-white hover:text-[#463653]"
+          >
+            ✨ 生成虚拟形象
+          </button>
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <span className="chip">
               ✨ {total?.statsLights ?? 0} · ⭐ {total?.statsStars ?? 0} · 🛰️ {total?.statsVisits ?? 0}
@@ -240,53 +269,13 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
               </p>
             )}
           </section>
-
-          {/* 宠物形象：拍照生成 2.5D Q 版 */}
-          <section className="card p-5 sm:p-6">
-            <div className="mb-4 flex items-end justify-between">
-              <div>
-                <p className="eyebrow">PET AVATAR</p>
-                <h2 className="title mt-1.5 text-xl">宠物形象</h2>
-              </div>
-              <span className="text-[10px] text-[#b09ec0]">拍照生成 2.5D Q 版</span>
-            </div>
-            <PetAvatarStudio
-              initialAvatar={initial.pet.avatar ? { imageUrl: initial.pet.avatar.imageUrl } : undefined}
-              onSaved={(url) => setAvatarUrl(url)}
-            />
-
-            {/* 智普 AI 虚拟形象（独立入口，不改 PetAvatarStudio） */}
-            <div className="mt-5 border-t border-dashed border-[#e9e0ff] pt-4">
-              <p className="mb-3 flex items-center gap-1.5 text-[10px] font-medium text-[#b09ec0]">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#c9b6e8]" />
-                智普 AI · 虚拟形象
-              </p>
-              <ZaiImageGenerator
-                petName={initial.pet.name}
-                onGenerated={(url) => setAvatarUrl(url)}
-              />
-            </div>
-          </section>
         </div>
       </div>
 
-      {/* 访问控制 + 邀请码（条件显示） */}
-      <section className="mt-4 space-y-4">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <AccessControlSheet visibility={visibility} onChange={setVisibility} />
-
-        {/* 邀请码卡片：仅 INVITE 可见，带 CSS 折叠动画 */}
-        <div
-          className="grid transition-all duration-300 ease-out"
-          style={{
-            gridTemplateRows: visibility === 'INVITE' ? '1fr' : '0fr',
-            opacity: visibility === 'INVITE' ? 1 : 0,
-          }}
-        >
-          <div className="overflow-hidden">
-            <InviteCard inviteCode={inviteCode} planetId={initial.id} onReset={setInviteCode} />
-          </div>
-        </div>
-      </section>
+        <InviteCard inviteCode={inviteCode} planetId={initial.id} onReset={setInviteCode} />
+      </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="card p-5 sm:p-6">
@@ -387,133 +376,94 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
       </div>
 
       <section className="card mt-4 p-5 sm:p-6">
-        <div className="mb-3 flex items-end justify-between">
+        <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <p className="eyebrow">MEMORIES</p>
             <h2 className="title mt-1.5 text-xl">回忆可见性</h2>
           </div>
-          <span className="text-[10px] text-[#b09ec0]">访客只能看到 PUBLIC</span>
+          <div className="flex items-center gap-2">
+            <span className="hidden text-[10px] text-[#b09ec0] sm:inline">访客只能看到公开回忆</span>
+            <button
+              type="button"
+              onClick={() => setMemoryModalOpen(true)}
+              className="inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/70 px-3 py-1.5 text-[11px] text-[#6d5a7b] shadow-[0_10px_22px_-18px_rgba(94,68,110,0.6)] transition hover:bg-white hover:text-[#463653]"
+            >
+              <span className="text-[13px] leading-none">+</span>
+              添加回忆
+            </button>
+          </div>
         </div>
         <ul className="grid gap-2 sm:grid-cols-2">
           {(data?.memories ?? []).map((memory) => (
             <li
               key={memory.id}
-              className="flex items-start gap-2 rounded-xl bg-white/55 px-3 py-2.5 text-[12px] leading-relaxed text-[#6d5a7b]"
+              className="group relative flex items-start gap-2 rounded-xl bg-white/55 px-3 py-2.5 text-[12px] leading-relaxed text-[#6d5a7b] transition hover:bg-white/80"
             >
-              <span className="mt-0.5 shrink-0 text-[10px]">
-                {memory.visibility === 'PUBLIC' ? '🌍' : '🔒'}
+              {memory.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={memory.imageUrl}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <span className="mt-0.5 shrink-0 text-[10px]" aria-hidden>
+                  {memory.visibility === 'PUBLIC' ? '🌍' : '🔒'}
+                </span>
+              )}
+              <span className="min-w-0 flex-1 break-words">
+                {memory.imageUrl && (
+                  <span className="mr-1 text-[10px]" aria-hidden>
+                    {memory.visibility === 'PUBLIC' ? '🌍' : '🔒'}
+                  </span>
+                )}
+                {memory.text}
               </span>
-              <span className="min-w-0 flex-1 break-words">{memory.text}</span>
-              <span className="shrink-0 text-[9px] uppercase tracking-wide text-[#b7a8c2]">
-                {memory.visibility}
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] uppercase tracking-wide ${
+                  memory.visibility === 'PUBLIC'
+                    ? 'bg-[#e8f4ff] text-[#5f8fb8]'
+                    : 'bg-[#f3ecff] text-[#8b7ab8]'
+                }`}
+              >
+                {memory.visibility === 'PUBLIC' ? '公开' : '私密'}
               </span>
+              <button
+                type="button"
+                onClick={() => deleteMemory(memory.id)}
+                disabled={deletingMemory === memory.id}
+                aria-label="删除这条回忆"
+                title="删除这条回忆"
+                className="absolute right-2 top-1.5 rounded-full px-1.5 py-0.5 text-[11px] text-[#c99aab] opacity-0 transition hover:bg-white hover:text-[#c26a86] focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+              >
+                {deletingMemory === memory.id ? '…' : '🗑'}
+              </button>
             </li>
           ))}
           {!data && <li className="text-xs text-[#b09ec0]">加载中…</li>}
+          {data && data.memories.length === 0 && (
+            <li className="text-xs leading-relaxed text-[#b09ec0]">
+              还没有回忆。点右上角「+ 添加回忆」，把照片和文字收进这颗星球。
+            </li>
+          )}
         </ul>
       </section>
+
+      <MemoryEditorModal
+        open={memoryModalOpen}
+        planetId={initial.id}
+        onClose={() => setMemoryModalOpen(false)}
+        onSaved={fetchDashboard}
+      />
+
+      <PetAvatarModal
+        open={avatarModalOpen}
+        planetId={initial.id}
+        petName={initial.pet.name}
+        currentAvatarUrl={petAvatar}
+        onClose={() => setAvatarModalOpen(false)}
+        onSaved={setPetAvatar}
+      />
     </main>
-  );
-}
-
-/* --------------------------------------------------------------
- * ZaiImageGenerator — 智普 AI 虚拟形象生成器（独立子组件）
- * - 上传图片 → 转 base64 → 调 /api/ai/image
- * - 失败时展示内置宠物剪影占位图，不阻塞页面
- * ------------------------------------------------------------ */
-type ZaiImageGeneratorProps = {
-  petName: string;
-  onGenerated?: (url: string) => void;
-};
-
-function ZaiImageGenerator({ petName, onGenerated }: ZaiImageGeneratorProps) {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [style, setStyle] = useState<'Q版' | '拟真'>('Q版');
-
-  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
-      setError('只支持 jpeg / png / webp');
-      return;
-    }
-    const r = new FileReader();
-    r.onload = (ev) => {
-      setPreview(ev.target?.result as string);
-      setError('');
-    };
-    r.readAsDataURL(f);
-  };
-
-  const handleGenerate = async () => {
-    if (!preview || loading) return;
-    setLoading(true);
-    setError('');
-    try {
-      const res = await apiFetch('/api/ai/image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: preview,
-          petName,
-          style,
-        }),
-      });
-      const data = await res.json();
-      if (data.imageUrl && !data.fallback) {
-        onGenerated?.(data.imageUrl);
-      } else {
-        setError('AI 暂不可用，保留当前形象');
-      }
-    } catch {
-      setError('生成失败，保留当前形象');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <label className="flex-1 cursor-pointer rounded-xl border-2 border-dashed border-[#e9e0ff] bg-[#faf8ff] px-3 py-2 text-center text-[11px] font-medium text-[#8b7a97] transition-colors hover:border-[#d9cbe4]">
-          {preview ? '换一张照片' : '📷 上传宠物照片'}
-          <input type="file" accept="image/*" onChange={handleFile} className="hidden" disabled={loading} />
-        </label>
-        <select
-          value={style}
-          onChange={(e) => setStyle(e.target.value as 'Q版' | '拟真')}
-          disabled={loading}
-          className="rounded-xl border border-[#e9e0ff] bg-white px-2.5 py-2 text-[11px] text-[#8b7a97] disabled:opacity-50"
-        >
-          <option value="Q版">Q 版</option>
-          <option value="拟真">拟真</option>
-        </select>
-      </div>
-
-      {preview && (
-        <div className="flex items-center gap-3">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-[#e9e0ff] bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="照片预览" className="h-full w-full object-cover" />
-          </div>
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={loading}
-            className="btn btn-primary btn-sm relative flex-1 overflow-hidden"
-          >
-            {loading ? 'AI 正在画…' : '✨ 生成虚拟形象'}
-          </button>
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-xl border border-[#f4d3dc] bg-[#fff3f6] px-3 py-2 text-[11px] text-[#c26a86]">
-          {error}
-        </div>
-      )}
-    </div>
   );
 }

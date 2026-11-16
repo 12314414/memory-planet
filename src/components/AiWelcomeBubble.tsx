@@ -37,9 +37,8 @@ export default function AiWelcomeBubble({
         if (!alive) return;
         if (!data?.text) throw new Error('empty');
         setText(data.text);
-        setStatus('fallback');
-        // AI 真正生成时后端返回 source=ai；缓存命中同样是 AI 文案
-        setStatus(data.source === 'fallback' ? 'fallback' : 'ai');
+        // fallback=true 表示后端用了模板，样式不变只换标签
+        setStatus(data.fallback ? 'fallback' : 'ai');
       } catch {
         if (!alive) return;
         setText(fallback);

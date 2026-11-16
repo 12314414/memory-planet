@@ -2,11 +2,8 @@ export type PetProfile = {
   name: string;
   species: 'cat' | 'dog' | 'rabbit';
   persona: string;
-  avatar?: {
-    status?: string;
-    imageUrl?: string;
-    style?: string;
-  } | null;
+  /** AI 生成的虚拟形象（Base64 或 https 图片） */
+  avatarUrl?: string;
 };
 
 export type PlanetDTO = {

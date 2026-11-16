@@ -56,15 +56,18 @@ export default function PlanetScene({ mode, planet, petProfile, onAction }: Plan
         role={interactive ? 'button' : undefined}
         aria-label={interactive ? `投喂${petProfile.name}` : petProfile.name}
       >
-        {petProfile?.avatar?.imageUrl ? (
-          // 已生成 Q 版形象：优先显示，回退到下方 CSS 占位宠物
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={petProfile.avatar.imageUrl}
-            alt={petProfile.name}
-            className="pet-avatar-img"
-            style={{ width: '100%', height: 'auto', display: 'block', filter: 'drop-shadow(0 10px 18px rgba(80,40,120,0.25))' }}
-          />
+        {petProfile.avatarUrl ? (
+          <>
+            {/* AI 生成的宠物虚拟形象 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={petProfile.avatarUrl}
+              alt={petProfile.name}
+              className="pet-avatar"
+              draggable={false}
+            />
+            <span className="pet-crown">✦</span>
+          </>
         ) : (
           <>
             <span className="pet-tail" style={{ ['--pet-ear' as string]: '#fff8fc' }} />

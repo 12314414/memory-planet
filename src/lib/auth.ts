@@ -124,24 +124,11 @@ export function parsePetProfile(raw: string): PetProfile {
         name: parsed.name,
         species: parsed.species === 'dog' || parsed.species === 'rabbit' ? parsed.species : 'cat',
         persona: typeof parsed.persona === 'string' ? parsed.persona : '一只温柔的星球宠物',
+        avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : undefined,
       };
     }
   } catch {
     // ignore malformed json
   }
   return { name: '团子', species: 'cat', persona: '一只温柔的星球宠物' };
-}
-
-/** 解析 Planet.petAvatarJson 为 petProfile.avatar；未生成或损坏时返回 null */
-export function parsePetAvatar(raw: string | null | undefined): PetProfile['avatar'] {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as { status?: string; imageUrl?: string; style?: string };
-    if (parsed && typeof parsed.imageUrl === 'string' && parsed.imageUrl) {
-      return { status: parsed.status, imageUrl: parsed.imageUrl, style: parsed.style };
-    }
-  } catch {
-    // ignore malformed json
-  }
-  return null;
 }

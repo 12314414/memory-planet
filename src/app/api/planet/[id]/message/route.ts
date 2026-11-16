@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser, parsePetProfile } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import { resolvePlanetAccess } from '@/lib/permissions';
 import { maskSensitive } from '@/lib/constants';
-import { callAiProxy } from '@/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
-/** 留言：默认 VISIBLE，写入后立即向 /api/ai/chat 取宠物回复；AI 失败用模板兜底 */
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } },
-) {
+/**
+ * 留言：默认 VISIBLE，写入后立即返回（不等 AI）。
+ * 宠物回复由前端异步请求 /api/ai/chat，再回写 aiReply，避免留言被 AI 超时拖慢。
+ */
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   const viewer = await getCurrentUser();
   if (!viewer) {
     return NextResponse.json({ error: '请先输入昵称进入' }, { status: 401 });
@@ -32,7 +31,6 @@ export async function POST(
   }
 
   const content = maskSensitive(raw);
-  const pet = parsePetProfile(access.planet.petProfileJson);
 
   const entry = await prisma.guestbook.create({
     data: {
@@ -53,30 +51,13 @@ export async function POST(
     },
   });
 
-  const origin = new URL(request.url).origin;
-  const ai = await callAiProxy(
-    origin,
-    {
-      type: 'reply',
-      planetId: params.id,
-      visitorName: viewer.nickname,
-      content,
-    },
-    request.headers.get('cookie'),
-  );
-
-  const aiReply = ai?.text || `${pet.name}记下了你的话，谢谢你来到这颗星球。`;
-
-  await prisma.guestbook.update({ where: { id: entry.id }, data: { aiReply } });
-
   return NextResponse.json({
     guestbook: {
       id: entry.id,
       visitorName: entry.visitorName,
       content: entry.content,
-      aiReply,
+      aiReply: null,
       createdAt: entry.createdAt.toISOString(),
     },
-    source: ai?.source ?? 'fallback',
   });
 }
