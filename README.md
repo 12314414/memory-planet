@@ -19,7 +19,7 @@ npm install
 
 # 1. 环境变量
 cp .env.example .env        # Windows: copy .env.example .env
-#   AI_API_KEY 留空也能完整演示（所有 AI 文案自动走模板降级）
+#   ZAI_API_KEY 留空也能完整演示（所有 AI 文案自动走模板降级）
 
 # 2. 建表 + 演示数据
 npm run db:push
@@ -60,7 +60,7 @@ npm run dev
 | 变量 | 用途 |
 | --- | --- |
 | `DATABASE_URL` | Neon 连接串（集成自动写入，无需手动） |
-| `AI_BASE_URL` / `AI_MODEL` / `AI_API_KEY` | AI 代理配置，留空则全程模板降级 |
+| `ZAI_API_KEY` / `ZAI_BASE_URL` / `ZAI_MODEL` / `ZAI_IMAGE_MODEL` | 智谱 GLM 配置，留空则全程模板降级 |
 
 > Vercel 的 Serverless 文件系统只读，因此公网环境必须用托管 Postgres；本地 `npm run dev` 仍用 SQLite。
 >
@@ -83,20 +83,18 @@ npm run dev
 
 ### AI 配置（服务端）
 
-`.env` 中的三项即可切换服务商，接口均为 OpenAI 兼容格式：
+已接入**智谱 GLM**（OpenAI 兼容 Chat Completions，原生 fetch，无额外 SDK）。`.env.local` 中配置：
 
 ```env
-# DeepSeek
-AI_BASE_URL="https://api.deepseek.com/v1"
-AI_MODEL="deepseek-chat"
-# 混元
-# AI_BASE_URL="https://api.hunyuan.cloud.tencent.com/v1"
-# AI_MODEL="hunyuan-turbos-latest"
-AI_API_KEY="sk-xxx"
-AI_TIMEOUT_MS="9000"
+ZAI_API_KEY=""
+ZAI_BASE_URL="https://open.bigmodel.cn/api/paas/v4"
+ZAI_MODEL="glm-4-flash"
+ZAI_IMAGE_MODEL="glm-image"
 ```
 
-> 这些变量**只在服务端**（`src/lib/ai.ts`、`/api/ai/chat`）读取，不挂 `NEXT_PUBLIC_`，前端代码与响应体都不会出现 Key。`AI_API_KEY` 为空时自动使用模板文案，页面表现完全正常。
+> 这些变量**只在服务端**（`src/lib/ai.ts`、`/api/ai/chat`、`/api/ai/image`）读取，不挂 `NEXT_PUBLIC_`，前端代码与响应体都不会出现 Key。`ZAI_API_KEY` 为空时自动使用模板文案，页面表现完全正常。
+>
+> `temperature=0.7`、`max_tokens=200`、8 秒超时；遇到 429 / 业务码 1305 会等 2 秒重试一次，仍失败则降级。`welcome` / `brief` 命中 `AiCache`（24h），留言回复改为写入留言后异步获取，不阻塞提交。宠物形象生成走 `/api/ai/image`（15 秒超时，失败显示内置剪影）。
 
 ### Supabase 登录（邮箱 + 密码）
 
@@ -244,8 +242,8 @@ type IntroProps = { duration?: number; skippable?: boolean; onFinish: () => void
 **边界验证**
 12. A 把权限改为「私密」→ B 刷新或重新打开链接 → 显示「这颗星球现在是私密的」，接口 403。
 13. A 重置邀请码 → B 用旧码访问 → 提示需要有效邀请码。
-14. 把 `.env` 的 `AI_API_KEY` 改错或断网 → 刷新访客页与留言 → 页面不崩，出现模板欢迎语与「记下了你的话」。
-15. 浏览器 DevTools → Sources / Network 搜索 `AI_API_KEY`、`sk-`，确认前端无任何 Key。
+14. 把 `.env.local` 的 `ZAI_API_KEY` 改错或断网 → 刷新访客页与留言 → 页面不崩，出现模板欢迎语与「记下了你的话」。
+15. 浏览器 DevTools → Sources / Network 搜索 `ZAI_API_KEY`、`sk-`，确认前端无任何 Key。
 
 ---
 

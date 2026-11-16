@@ -66,7 +66,8 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     text,
-    source: ai?.source ?? 'fallback',
+    fallback: !ai || ai.fallback,
+    source: ai ? (ai.fallback ? 'fallback' : 'ai') : 'fallback',
     today: { visitors: uniqueVisitors, lights, stars, feeds, messages: todayMessages.length },
   });
 }

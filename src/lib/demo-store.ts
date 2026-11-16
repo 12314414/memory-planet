@@ -19,6 +19,9 @@ import type { PetProfile } from './types';
 
 const STORAGE_KEY = 'hx_demo_v1';
 
+/** Vercel Serverless AI 代理地址（构建期注入；为空则纯模板降级） */
+const AI_PROXY_URL = (process.env.NEXT_PUBLIC_AI_PROXY_URL || '').replace(/\/+$/, '');
+
 type DemoAiCache = {
   planetId: string;
   visitorId: string;
@@ -426,7 +429,7 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
     });
     cacheText(state, planet.id, user.id, 'brief', text);
     save();
-    return json({ text, source: 'fallback' });
+    return json({ text, fallback: true, source: 'fallback' });
   }
 
   if (path === '/api/planet/owner/invite' && method === 'POST') {
@@ -468,11 +471,54 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
     return json({ ok: true });
   }
 
+  // 主人新增回忆
+  if (path === '/api/planet/owner/memory' && method === 'POST') {
+    if (!user) return json({ error: '请先登录后再添加回忆' }, 401);
+    const text = String(body?.text ?? '').trim();
+    const visibility = String(body?.visibility ?? 'PUBLIC').toUpperCase();
+    const imageData = typeof body?.imageData === 'string' ? body.imageData : '';
+    if (!text) return json({ error: '回忆文字不能为空' }, 400);
+    if (text.length > 200) return json({ error: '回忆文字最多 200 字' }, 400);
+    if (!['PUBLIC', 'PRIVATE'].includes(visibility)) return json({ error: '无效的可见性' }, 400);
+    if (imageData && !/^data:image\/(png|jpeg|jpg|webp);base64,/.test(imageData)) {
+      return json({ error: '图片格式不支持' }, 400);
+    }
+    const planet = myPlanet(state);
+    const memory: DemoMemory = {
+      id: uid('m'),
+      planetId: planet.id,
+      ownerId: user.id,
+      imageUrl: imageData || null,
+      text,
+      visibility: visibility as DemoMemory['visibility'],
+      createdAt: now(),
+    };
+    state.memories.unshift(memory);
+    planet.updatedAt = now();
+    save();
+    return json({ memory });
+  }
+
+  // 主人删除回忆
+  const memoryDeleteMatch = path.match(/^\/api\/planet\/owner\/memory\/([^/]+)$/);
+  if (memoryDeleteMatch && method === 'DELETE') {
+    if (!user) return json({ error: '请先登录后再操作' }, 401);
+    const memoryId = decodeURIComponent(memoryDeleteMatch[1]);
+    const index = state.memories.findIndex((item) => item.id === memoryId);
+    if (index === -1) return json({ error: '回忆不存在' }, 404);
+    if (state.memories[index].planetId !== myPlanet(state).id) {
+      return json({ error: '只有主人可以删除回忆' }, 403);
+    }
+    state.memories.splice(index, 1);
+    save();
+    return json({ ok: true });
+  }
+
   // AI 代理（静态版只有模板降级，Key 永远不会进入前端）
   if (path === '/api/ai/chat' && method === 'POST') {
     const type = String(body?.type ?? '');
     const planetId = String(body?.planetId ?? '');
-    if (!['welcome', 'reply', 'brief'].includes(type)) {
+    if (!['welcome', 'reply', 'brief', 'polish'].includes(type)) {
       return json({ error: '无效的 AI 类型' }, 400);
     }
     if (!user) return json({ error: '请先输入昵称进入' }, 401);
@@ -485,16 +531,56 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
     if (type === 'brief' && !isOwner) {
       return json({ error: '只有主人可以查看访客简报' }, 403);
     }
+    if (type === 'polish' && !isOwner) {
+      return json({ error: '只有主人可以润色回忆' }, 403);
+    }
     const cacheOwner = type === 'brief' ? planet.ownerId : user.id;
     if ((type === 'welcome' || type === 'brief') && !body?.refresh) {
       const cached = readCached(state, planet.id, cacheOwner, type);
-      if (cached) return json({ text: cached, source: 'cache' });
+      if (cached) return json({ text: cached, fallback: false, source: 'cache' });
     }
+    const pet = parsePet(planet.petProfileJson);
+
+    // 静态站没有服务端，AI 走 Vercel Serverless 代理；失败/未配置则模板降级
+    if (AI_PROXY_URL) {
+      try {
+        const upstream = await fetch(`${AI_PROXY_URL}/api/ai/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type,
+            planetId: planet.id,
+            planetName: planet.name,
+            visitorName: user.nickname,
+            content: typeof body?.content === 'string' ? body.content : undefined,
+            briefData: type === 'brief' ? briefDataOf(state, planet) : undefined,
+            petName: pet.name,
+            petPersona: pet.persona,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const data = await upstream.json().catch(() => null);
+        if (upstream.ok && data?.text) {
+          if (!data.fallback && (type === 'welcome' || type === 'brief')) {
+            cacheText(state, planet.id, cacheOwner, type, data.text);
+            save();
+          }
+          return json({
+            text: data.text,
+            fallback: Boolean(data.fallback),
+            source: data.fallback ? 'fallback' : 'ai',
+          });
+        }
+      } catch {
+        // 代理不可达：继续走模板
+      }
+    }
+
     const text = fallbackText({
-      type: type as 'welcome' | 'reply' | 'brief',
+      type: type as 'welcome' | 'reply' | 'brief' | 'polish',
       planetName: planet.name,
       themeLabel: '',
-      pet: parsePet(planet.petProfileJson),
+      pet,
       visitorName: user.nickname,
       content: typeof body?.content === 'string' ? body.content : undefined,
       briefData: type === 'brief' ? briefDataOf(state, planet) : undefined,
@@ -503,10 +589,68 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
       cacheText(state, planet.id, cacheOwner, type, text);
     }
     save();
-    return json({ text, source: 'fallback' });
+    return json({ text, fallback: true, source: 'fallback' });
   }
 
-  // 星球详情 / 互动 / 留言
+  // AI 图片：走同一个 Vercel 代理，失败返回空地址由前端显示剪影
+  if (path === '/api/ai/image' && method === 'POST') {
+    if (AI_PROXY_URL) {
+      try {
+        const upstream = await fetch(`${AI_PROXY_URL}/api/ai/image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: body?.imageBase64,
+            petName: body?.petName,
+            style: body?.style,
+          }),
+          signal: AbortSignal.timeout(25000),
+        });
+        const data = await upstream.json().catch(() => null);
+        if (upstream.ok && data?.imageUrl) {
+          return json({ imageUrl: data.imageUrl, fallback: false });
+        }
+      } catch {
+        // 代理不可达：走剪影占位
+      }
+    }
+    return json({ imageUrl: '', fallback: true });
+  }
+
+  // 保存宠物虚拟形象（静态版存 localStorage）
+  if (path === '/api/planet/owner/avatar' && method === 'POST') {
+    if (!user) return json({ error: '请先输入昵称进入' }, 401);
+    const avatarUrl = String(body?.avatarUrl ?? '');
+    if (!/^(https?:\/\/|data:image\/)/.test(avatarUrl)) {
+      return json({ error: '形象地址无效' }, 400);
+    }
+    const planet = myPlanet(state);
+    let pet: Record<string, unknown> = {};
+    try {
+      pet = JSON.parse(planet.petProfileJson) as Record<string, unknown>;
+    } catch {
+      pet = {};
+    }
+    planet.petProfileJson = JSON.stringify({ ...pet, avatarUrl });
+    planet.updatedAt = now();
+    save();
+    return json({ avatarUrl });
+  }
+  // 异步回写宠物回复
+  const replyMatch = path.match(/^\/api\/planet\/([^/]+)\/message\/([^/]+)\/reply$/);
+  if (replyMatch && method === 'POST') {
+    if (!user) return json({ error: '请先输入昵称进入' }, 401);
+    const entry = state.guestbooks.find((item) => item.id === decodeURIComponent(replyMatch[2]));
+    if (!entry || entry.planetId !== replyMatch[1]) {
+      return json({ error: '留言不存在' }, 404);
+    }
+    if (!entry.aiReply) {
+      entry.aiReply = String(body?.aiReply ?? '').slice(0, 200) || null;
+      save();
+    }
+    return json({ aiReply: entry.aiReply });
+  }
+
   const planetMatch = path.match(/^\/api\/planet\/([^/]+)(?:\/(action|message))?$/);
   if (planetMatch) {
     if (!user) return json({ error: '请先输入昵称进入' }, 401);
@@ -580,7 +724,6 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
       const raw = String(body?.content ?? '').trim();
       if (!raw) return json({ error: '留言不能为空' }, 400);
       if (raw.length > 200) return json({ error: '留言最多 200 字' }, 400);
-      const pet = parsePet(planet.petProfileJson);
       const content = maskSensitive(raw);
       const entry: DemoGuestbook = {
         id: uid('g'),
@@ -588,14 +731,7 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
         visitorId: user.id,
         visitorName: user.nickname,
         content,
-        aiReply: fallbackText({
-          type: 'reply',
-          planetName: planet.name,
-          themeLabel: '',
-          pet,
-          visitorName: user.nickname,
-          content,
-        }),
+        aiReply: null,
         status: 'VISIBLE',
         createdAt: now(),
       };
@@ -607,10 +743,9 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
           id: entry.id,
           visitorName: entry.visitorName,
           content: entry.content,
-          aiReply: entry.aiReply,
+          aiReply: null,
           createdAt: entry.createdAt,
         },
-        source: 'fallback',
       });
     }
   }

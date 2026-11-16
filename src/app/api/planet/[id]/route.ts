@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser, parsePetProfile, parsePetAvatar } from '@/lib/auth';
+import { getCurrentUser, parsePetProfile } from '@/lib/auth';
 import { resolvePlanetAccess } from '@/lib/permissions';
 import type { GuestbookDTO, MemoryDTO } from '@/lib/types';
 
@@ -89,7 +89,7 @@ export async function GET(
       theme: planet.theme,
       visibility: planet.visibility,
       ownerName: owner?.nickname ?? '星球主人',
-      petProfile: { ...parsePetProfile(planet.petProfileJson), avatar: parsePetAvatar(planet.petAvatarJson) },
+      petProfile: parsePetProfile(planet.petProfileJson),
       statsVisits: planet.statsVisits,
       statsLights: planet.statsLights,
       statsStars: planet.statsStars,

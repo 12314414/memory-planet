@@ -215,6 +215,18 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
             onPosted={(entry) =>
               setData((prev) => (prev ? { ...prev, guestbook: [entry, ...prev.guestbook] } : prev))
             }
+            onReplyUpdated={(id, aiReply) =>
+              setData((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      guestbook: prev.guestbook.map((item) =>
+                        item.id === id ? { ...item, aiReply } : item,
+                      ),
+                    }
+                  : prev,
+              )
+            }
           />
         </div>
       </main>

@@ -10,6 +10,7 @@ type GuestbookProps = {
   entries: GuestbookDTO[];
   petName: string;
   onPosted: (entry: GuestbookDTO) => void;
+  onReplyUpdated?: (id: string, aiReply: string) => void;
 };
 
 function timeAgo(iso: string) {
@@ -27,10 +28,45 @@ export default function Guestbook({
   entries,
   petName,
   onPosted,
+  onReplyUpdated,
 }: GuestbookProps) {
   const [content, setContent] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [replyingTo, setReplyingTo] = useState('');
+
+  /** 留言先落库，再异步取宠物回复并回写；失败静默，不影响留言展示 */
+  const fetchReply = async (entry: GuestbookDTO) => {
+    setReplyingTo(entry.id);
+    try {
+      const aiRes = await apiFetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'reply',
+          planetId,
+          visitorName: entry.visitorName,
+          content: entry.content,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const aiJson = await aiRes.json().catch(() => null);
+      if (!aiRes.ok || !aiJson?.text) return;
+
+      const saveRes = await apiFetch(`/api/planet/${planetId}/message/${entry.id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiReply: aiJson.text }),
+      });
+      const saveJson = await saveRes.json().catch(() => null);
+      if (!saveRes.ok) return;
+      onReplyUpdated?.(entry.id, String(saveJson?.aiReply || aiJson.text));
+    } catch {
+      // 降级：不显示回复，留言本身已成功
+    } finally {
+      setReplyingTo('');
+    }
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -46,8 +82,10 @@ export default function Guestbook({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || '留言没有送达');
-      onPosted(data.guestbook as GuestbookDTO);
+      const entry = data.guestbook as GuestbookDTO;
+      onPosted(entry);
       setContent('');
+      void fetchReply(entry);
     } catch (err) {
       setError(err instanceof Error ? err.message : '留言没有送达');
     } finally {
@@ -115,6 +153,12 @@ export default function Guestbook({
                       <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#7a6349]">
                         {entry.aiReply}
                       </p>
+                    </div>
+                  )}
+
+                  {!entry.aiReply && replyingTo === entry.id && (
+                    <div className="mt-2 rounded-2xl rounded-tl-md border border-[#f4e7d2] bg-[#fff8ec]/60 px-3 py-2">
+                      <p className="text-[10px] text-[#c0a06a]">{petName} 正在轻轻想…</p>
                     </div>
                   )}
                 </div>

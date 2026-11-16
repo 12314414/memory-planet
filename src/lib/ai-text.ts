@@ -1,6 +1,6 @@
 import type { PetProfile } from './types';
 
-export type AiType = 'welcome' | 'reply' | 'brief';
+export type AiType = 'welcome' | 'reply' | 'brief' | 'polish';
 
 export type AiContext = {
   type: AiType;
@@ -12,7 +12,7 @@ export type AiContext = {
   briefData?: string;
 };
 
-const LIMIT: Record<AiType, number> = { welcome: 60, reply: 50, brief: 240 };
+const LIMIT: Record<AiType, number> = { welcome: 60, reply: 50, brief: 240, polish: 50 };
 
 export function clip(text: string, max: number) {
   const clean = text
@@ -34,6 +34,10 @@ export function fallbackText(ctx: AiContext): string {
   }
   if (ctx.type === 'reply') {
     return clip(`${ctx.pet.name}记下了你的话，谢谢你来到这颗星球。`, LIMIT.reply);
+  }
+  if (ctx.type === 'polish') {
+    // 降级：保持原意，只做长度裁剪
+    return clip(ctx.content || '', LIMIT.polish);
   }
   return clip(`今日访客小结：${ctx.briefData || '暂时还没有新的互动。'}`, LIMIT.brief);
 }
