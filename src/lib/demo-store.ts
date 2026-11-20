@@ -3,6 +3,8 @@
 import { fallbackText } from './ai-text';
 import { maskSensitive } from './constants';
 import {
+  DEMO_DIRECT_MESSAGES,
+  DEMO_FRIENDSHIPS,
   DEMO_GUESTBOOK,
   DEMO_INVITE_CODES,
   DEMO_MEMORIES,
@@ -10,6 +12,8 @@ import {
   DEMO_PLANETS,
   DEMO_USER_ID,
   DEMO_VISITS,
+  type DemoDirectMessage,
+  type DemoFriendship,
   type DemoGuestbook,
   type DemoMemory,
   type DemoPlanet,
@@ -36,6 +40,8 @@ type State = {
   memories: DemoMemory[];
   guestbooks: DemoGuestbook[];
   visits: DemoVisit[];
+  friendships: DemoFriendship[];
+  messages: DemoDirectMessage[];
   aiCache: DemoAiCache[];
 };
 
@@ -50,6 +56,8 @@ function freshState(): State {
       memories: DEMO_MEMORIES,
       guestbooks: DEMO_GUESTBOOK,
       visits: DEMO_VISITS,
+      friendships: DEMO_FRIENDSHIPS,
+      messages: DEMO_DIRECT_MESSAGES,
       aiCache: [],
     }),
   ) as State;
@@ -116,6 +124,45 @@ function planetDTO(planet: DemoPlanet) {
 
 function myPlanet(state: State) {
   return state.planets.find((planet) => planet.id === DEMO_MINE_PLANET_ID) ?? state.planets[0];
+}
+
+/** 按 userId 找到星球主人昵称（好友/私信里展示对方名字用） */
+function nicknameOf(state: State, userId: string): string {
+  const planet = state.planets.find((item) => item.ownerId === userId);
+  if (planet) return planet.ownerName;
+  if (state.user && state.user.id === userId) return state.user.nickname;
+  return '旅人';
+}
+
+/** 我是否已和对方是好友 */
+function isFriend(state: State, otherId: string): boolean {
+  return state.friendships.some(
+    (f) =>
+      f.status === 'ACCEPTED' &&
+      ((f.requesterId === state.user?.id && f.addresseeId === otherId) ||
+        (f.addresseeId === state.user?.id && f.requesterId === otherId)),
+  );
+}
+
+/** 找两个用户之间唯一的 Friendship 记录（无视方向） */
+function friendshipBetween(state: State, aId: string, bId: string): DemoFriendship | undefined {
+  return state.friendships.find(
+    (f) =>
+      (f.requesterId === aId && f.addresseeId === bId) ||
+      (f.requesterId === bId && f.addresseeId === aId),
+  );
+}
+
+/** 好友申请 DTO：附带对方昵称，便于前端直接渲染 */
+function friendDTO(state: State, f: DemoFriendship, meId: string) {
+  const otherId = f.requesterId === meId ? f.addresseeId : f.requesterId;
+  return {
+    id: f.id,
+    status: f.status,
+    direction: f.requesterId === meId ? ('outgoing' as const) : ('incoming' as const),
+    user: { id: otherId, nickname: nicknameOf(state, otherId) },
+    createdAt: f.createdAt,
+  };
 }
 
 /** 供组件在静态版里做本地跳转：按邀请码找星球 */
@@ -331,6 +378,170 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
         updatedAt: planet.updatedAt,
       }));
     return json({ planets });
+  }
+
+  // ============ 好友关系 ============
+
+  // 我的好友列表（含待处理申请）
+  if (path === '/api/friends' && method === 'GET') {
+    if (!user) return json({ error: '请先输入昵称进入' }, 401);
+    const list = state.friendships
+      .filter((f) => f.requesterId === user.id || f.addresseeId === user.id)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((f) => friendDTO(state, f, user.id));
+    return json({ friends: list });
+  }
+
+  // 发送好友申请 / 处理申请
+  if (path === '/api/friends' && method === 'POST') {
+    if (!user) return json({ error: '请先输入昵称进入' }, 401);
+    const targetId = String(body?.targetId ?? '');
+    const action = String(body?.action ?? 'request'); // request | accept | reject
+    if (action === 'request') {
+      if (!targetId || targetId === user.id) return json({ error: '无效的对方' }, 400);
+      const existing = friendshipBetween(state, user.id, targetId);
+      if (existing) {
+        if (existing.status === 'ACCEPTED') return json({ error: '你们已经是好友了' }, 409);
+        return json({ error: '已经发过申请，等待对方回应' }, 409);
+      }
+      state.friendships.unshift({
+        id: uid('f'),
+        requesterId: user.id,
+        addresseeId: targetId,
+        status: 'PENDING',
+        createdAt: now(),
+      });
+      save();
+      return json({
+        friend: friendDTO(
+          state,
+          state.friendships[0],
+          user.id,
+        ),
+      });
+    }
+    // accept / reject：针对收到的申请，用 friendshipId 定位
+    const friendshipId = String(body?.friendshipId ?? '');
+    const friendship = state.friendships.find((f) => f.id === friendshipId);
+    if (!friendship || friendship.addresseeId !== user.id) {
+      return json({ error: '申请不存在或无权处理' }, 404);
+    }
+    if (action === 'accept') {
+      friendship.status = 'ACCEPTED';
+      // 接受后自动回一条系统问候
+      state.messages.unshift({
+        id: uid('dm'),
+        senderId: user.id,
+        recipientId: friendship.requesterId,
+        content: `我通过你的好友申请啦，欢迎来我的星球坐坐 🌟`,
+        read: false,
+        createdAt: now(),
+      });
+      save();
+      return json({ friend: friendDTO(state, friendship, user.id) });
+    }
+    if (action === 'reject') {
+      state.friendships = state.friendships.filter((f) => f.id !== friendshipId);
+      save();
+      return json({ ok: true });
+    }
+    return json({ error: '无效的操作' }, 400);
+  }
+
+  // 好友状态查询（访客星球页判断是否已加好友）
+  if (path.startsWith('/api/friends/status')) {
+    if (!user) return json({ error: '请先输入昵称进入' }, 401);
+    const targetId = url.searchParams.get('userId') || '';
+    if (!targetId) return json({ error: '缺少目标用户' }, 400);
+    const friendship = friendshipBetween(state, user.id, targetId);
+    if (!friendship) return json({ status: 'none' });
+    if (friendship.status === 'PENDING') {
+      const incoming = friendship.addresseeId === user.id;
+      return json({ status: 'pending', direction: incoming ? 'incoming' : 'outgoing', friendshipId: friendship.id });
+    }
+    return json({ status: 'accepted', friendshipId: friendship.id });
+  }
+
+  // ============ 私信 ============
+
+  // 我的会话列表（按对方聚合，带最后一条与未读数）
+  if (path === '/api/messages' && method === 'GET') {
+    if (!user) return json({ error: '请先输入昵称进入' }, 401);
+    const partners = new Map<string, DemoDirectMessage[]>();
+    for (const m of state.messages) {
+      const isMine = m.senderId === user.id;
+      const otherId = isMine ? m.recipientId : m.senderId;
+      if (!isMine && m.recipientId !== user.id) continue;
+      if (isMine && m.senderId !== user.id) continue;
+      if (!partners.has(otherId)) partners.set(otherId, []);
+      partners.get(otherId)!.push(m);
+    }
+    const conversations = Array.from(partners.entries())
+      .map(([otherId, msgs]) => {
+        const sorted = msgs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        const last = sorted[sorted.length - 1];
+        const unread = msgs.filter((m) => m.senderId === otherId && !m.read).length;
+        return {
+          user: { id: otherId, nickname: nicknameOf(state, otherId) },
+          lastMessage: last.content,
+          lastAt: last.createdAt,
+          unread,
+        };
+      })
+      .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+    return json({ conversations });
+  }
+
+  // 拉取与某人的私信记录（并把对方发给我的标记为已读）
+  if (path.startsWith('/api/messages/with')) {
+    if (!user) return json({ error: '请先输入昵称进入' }, 401);
+    const otherId = url.searchParams.get('userId') || '';
+    if (!otherId) return json({ error: '缺少对方' }, 400);
+    const thread = state.messages
+      .filter(
+        (m) =>
+          (m.senderId === user.id && m.recipientId === otherId) ||
+          (m.senderId === otherId && m.recipientId === user.id),
+      )
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    // 标记已读
+    thread.forEach((m) => {
+      if (m.senderId === otherId && !m.read) m.read = true;
+    });
+    save();
+    return json({
+      user: { id: otherId, nickname: nicknameOf(state, otherId) },
+      messages: thread.map((m) => ({
+        id: m.id,
+        mine: m.senderId === user.id,
+        content: m.content,
+        createdAt: m.createdAt,
+      })),
+    });
+  }
+
+  // 发送私信（仅好友之间）
+  if (path === '/api/messages' && method === 'POST') {
+    if (!user) return json({ error: '请先输入昵称进入' }, 401);
+    const recipientId = String(body?.recipientId ?? '');
+    const content = maskSensitive(String(body?.content ?? '').trim());
+    if (!recipientId) return json({ error: '缺少收信人' }, 400);
+    if (!content) return json({ error: '消息不能为空' }, 400);
+    if (content.length > 500) return json({ error: '消息最多 500 字' }, 400);
+    if (!isFriend(state, recipientId)) {
+      return json({ error: '你们还不是好友，先加好友再聊吧' }, 403);
+    }
+    const msg: DemoDirectMessage = {
+      id: uid('dm'),
+      senderId: user.id,
+      recipientId,
+      content,
+      read: false,
+      createdAt: now(),
+    };
+    state.messages.push(msg);
+    save();
+    return json({ message: { id: msg.id, mine: true, content: msg.content, createdAt: msg.createdAt } });
   }
 
   // 邀请码解析
@@ -677,7 +888,7 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
       }
       return json({
         viewer: { id: user.id, nickname: user.nickname, isOwner },
-        planet: planetDTO(planet),
+        planet: { ...planetDTO(planet), ownerId: planet.ownerId },
         memories: state.memories
           .filter((memory) => memory.planetId === planet.id && memory.visibility === 'PUBLIC')
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt))

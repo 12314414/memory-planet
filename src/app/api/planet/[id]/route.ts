@@ -88,6 +88,7 @@ export async function GET(
       name: planet.name,
       theme: planet.theme,
       visibility: planet.visibility,
+      ownerId: planet.ownerId,
       ownerName: owner?.nickname ?? '星球主人',
       petProfile: parsePetProfile(planet.petProfileJson),
       statsVisits: planet.statsVisits,

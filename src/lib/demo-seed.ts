@@ -49,6 +49,24 @@ export type DemoVisit = {
   createdAt: string;
 };
 
+export type DemoFriendship = {
+  id: string;
+  requesterId: string;
+  addresseeId: string;
+  // PENDING | ACCEPTED
+  status: 'PENDING' | 'ACCEPTED';
+  createdAt: string;
+};
+
+export type DemoDirectMessage = {
+  id: string;
+  senderId: string;
+  recipientId: string;
+  content: string;
+  read: boolean;
+  createdAt: string;
+};
+
 const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3600 * 1000).toISOString();
 
 export const DEMO_USER_ID = 'u-demo';
@@ -327,3 +345,52 @@ export const DEMO_VISITS: DemoVisit[] = [
 /** 静态导出时预渲染的动态路由参数 */
 export const DEMO_PLANET_IDS = DEMO_PLANETS.map((planet) => planet.id);
 export const DEMO_INVITE_CODES = DEMO_PLANETS.map((planet) => planet.inviteCode);
+
+/**
+ * 好友关系种子：模拟「阿柚」已通过你的申请（已成好友）、「星野」向你发来待处理申请。
+ * 其它星球主人（栗子、鹿鹿）作为可发送申请的陌生人。
+ */
+export const DEMO_FRIENDSHIPS: DemoFriendship[] = [
+  {
+    id: 'f-accepted-阿柚',
+    requesterId: DEMO_USER_ID,
+    addresseeId: 'u-ayou',
+    status: 'ACCEPTED',
+    createdAt: hoursAgo(50),
+  },
+  {
+    id: 'f-pending-星野',
+    requesterId: 'u-xingye',
+    addresseeId: DEMO_USER_ID,
+    status: 'PENDING',
+    createdAt: hoursAgo(4),
+  },
+];
+
+/** 私信种子：与「阿柚」的一段已有对话（含一条未读） */
+export const DEMO_DIRECT_MESSAGES: DemoDirectMessage[] = [
+  {
+    id: 'dm-1',
+    senderId: DEMO_USER_ID,
+    recipientId: 'u-ayou',
+    content: '阿柚，你的海盐星球真的好治愈，我可以常来坐坐吗？',
+    read: true,
+    createdAt: hoursAgo(48),
+  },
+  {
+    id: 'dm-2',
+    senderId: 'u-ayou',
+    recipientId: DEMO_USER_ID,
+    content: '当然可以呀，小宇宙最喜欢新朋友啦，随时欢迎～',
+    read: true,
+    createdAt: hoursAgo(46),
+  },
+  {
+    id: 'dm-3',
+    senderId: 'u-ayou',
+    recipientId: DEMO_USER_ID,
+    content: '对了，今天给你星球送了一颗星，你记得去看看哦。',
+    read: false,
+    createdAt: hoursAgo(2),
+  },
+];

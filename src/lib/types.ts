@@ -12,6 +12,8 @@ export type PlanetDTO = {
   theme: string;
   visibility: 'PRIVATE' | 'INVITE' | 'PUBLIC';
   ownerName: string;
+  /** 主人 userId，访客页用于「加好友」定位对方（DEMO 模式也返回） */
+  ownerId?: string;
   petProfile: PetProfile;
   statsVisits: number;
   statsLights: number;
@@ -67,4 +69,27 @@ export type OwnerDashboardDTO = {
   guestbook: GuestbookDTO[];
   memories: (MemoryDTO & { visibility: 'PRIVATE' | 'PUBLIC' })[];
   aiBrief: string | null;
+};
+
+/** 好友关系 DTO（前端统一用这个结构，服务端与 DEMO 保持一致） */
+export type FriendDTO = {
+  id: string;
+  status: 'PENDING' | 'ACCEPTED';
+  direction: 'incoming' | 'outgoing';
+  user: { id: string; nickname: string };
+  createdAt: string;
+};
+
+export type ConversationDTO = {
+  user: { id: string; nickname: string };
+  lastMessage: string;
+  lastAt: string;
+  unread: number;
+};
+
+export type DirectMessageDTO = {
+  id: string;
+  mine: boolean;
+  content: string;
+  createdAt: string;
 };

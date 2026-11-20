@@ -9,5 +9,8 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 prisma/schema.postgres.generated.prisma
 
+# 本地视觉预览原型（仅开发用，不进生产）
+prototype/
+
 .vercel
 .env*

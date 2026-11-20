@@ -16,8 +16,13 @@ model User {
   nickname  String
   createdAt DateTime @default(now())
 
-  planets    Planet[]
-  memories   Memory[]
+  planets             Planet[]
+  memories            Memory[]
+  // 我发起/收到的好友关系（去重由复合唯一索引保证）
+  sentFriendships     Friendship[]    @relation("FriendshipRequester")
+  receivedFriendships Friendship[]    @relation("FriendshipAddressee")
+  sentMessages        DirectMessage[] @relation("MessageSender")
+  receivedMessages    DirectMessage[] @relation("MessageRecipient")
 }
 
 model Planet {
@@ -103,4 +108,40 @@ model AiCache {
   planet Planet @relation(fields: [planetId], references: [id], onDelete: Cascade)
 
   @@index([planetId, visitorId, type])
+}
+
+// 好友关系：requester 发起申请，addressee 接收。
+// 同一对用户只允许一条记录，方向由 requester < addressee 的字典序保证唯一。
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  // PENDING | ACCEPTED
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+}
+
+// 好友之间的私信
+model DirectMessage {
+  id          String   @id @default(cuid())
+  senderId    String
+  recipientId String
+  content     String
+  // 收件人是否已读
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  sender    User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, recipientId, createdAt])
+  @@index([recipientId, read])
 }

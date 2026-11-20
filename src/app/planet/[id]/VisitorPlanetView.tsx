@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import AddFriendButton from '@/components/AddFriendButton';
 import AiWelcomeBubble from '@/components/AiWelcomeBubble';
 import Guestbook from '@/components/Guestbook';
 import MemoryWall from '@/components/MemoryWall';
@@ -170,6 +171,19 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
           </section>
 
           <div className="space-y-4">
+            {!viewer.isOwner && (
+              <div className="card p-5">
+                <p className="eyebrow">MAKE FRIENDS</p>
+                <h3 className="title mt-1 text-sm">和 {planet.ownerName} 做朋友</h3>
+                <p className="mt-1 text-[11px] text-[#b09ec0]">
+                  成为好友后，就能私信聊聊，也可以常来彼此的星球坐坐。
+                </p>
+                <div className="mt-3">
+                  <AddFriendButton ownerId={planet.ownerId} ownerName={planet.ownerName} />
+                </div>
+              </div>
+            )}
+
             <VisitorActions
               planetId={planet.id}
               inviteCode={inviteCode}
