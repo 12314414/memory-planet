@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { hashId } from '@/components/FloatingPlanet';
 import FriendsPanel from '@/components/FriendsPanel';
 import PlanetScene from '@/components/PlanetScene';
@@ -53,26 +55,118 @@ const SMALL_POS = [
   { top: 62, left: 64 },
 ];
 
-/** 星尘（大量，营造深邃星空） */
-const DUST = Array.from({ length: 80 }, (_, i) => ({
-  top: (i * 37 + 11) % 100,
-  left: (i * 53 + 7) % 100,
-  s: 1 + ((i * 13) % 3),
-  d: ((i * 17) % 60) / 10,
-  o: 0.25 + ((i * 23) % 60) / 100,
-}));
+const STAR_COUNT = 900;
 
-/** 十字星光（少数更亮的大星） */
-const CROSSES = [
-  { top: 6, left: 22, size: 13, d: 0.4 },
-  { top: 20, left: 70, size: 10, d: 1.6 },
-  { top: 34, left: 88, size: 12, d: 0.9 },
-  { top: 56, left: 6, size: 9, d: 2.4 },
-  { top: 72, left: 48, size: 11, d: 1.2 },
-  { top: 84, left: 90, size: 14, d: 3.1 },
-  { top: 48, left: 40, size: 8, d: 0.7 },
-  { top: 92, left: 8, size: 10, d: 1.8 },
-];
+/** 三维星尘：球体空间随机分布，支持透视缩放、叠加发光和拖拽旋转 */
+function ThreeStarfield() {
+  const mountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 300);
+    camera.position.set(0, 0, 1);
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    mount.appendChild(renderer.domElement);
+
+    const positions = new Float32Array(STAR_COUNT * 3);
+    const colors = new Float32Array(STAR_COUNT * 3);
+    const palette = [0xffffff, 0xffe8b5, 0xffc9dd, 0xd7c9ff];
+    const color = new THREE.Color();
+
+    for (let i = 0; i < STAR_COUNT; i += 1) {
+      // 在不同半径的球面上均匀取样，形成包含 Z 轴的三维球形星域。
+      const radius = 30 + Math.random() * 90;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const index = i * 3;
+
+      positions[index] = radius * Math.sin(phi) * Math.cos(theta);
+      positions[index + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      positions[index + 2] = radius * Math.cos(phi);
+
+      color.set(palette[Math.floor(Math.random() * palette.length)]);
+      colors[index] = color.r;
+      colors[index + 1] = color.g;
+      colors[index + 2] = color.b;
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    // 径向渐变贴图让每颗星保持柔和、圆润的发光边缘。
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = 64;
+    glowCanvas.height = 64;
+    const context = glowCanvas.getContext('2d')!;
+    const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.2, 'rgba(255,255,255,0.95)');
+    gradient.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 64, 64);
+    const glowTexture = new THREE.CanvasTexture(glowCanvas);
+
+    const material = new THREE.PointsMaterial({
+      size: 0.75,
+      map: glowTexture,
+      transparent: true,
+      opacity: 0.85,
+      vertexColors: true,
+      sizeAttenuation: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const stars = new THREE.Points(geometry, material);
+    scene.add(stars);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.rotateSpeed = 0.4;
+    controls.update();
+
+    const resize = () => {
+      const width = mount.clientWidth;
+      const height = mount.clientHeight;
+      if (!width || !height) return;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height, false);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    renderer.setAnimationLoop((time) => {
+      material.opacity = 0.72 + Math.sin(time * 0.0015) * 0.18;
+      controls.update();
+      renderer.render(scene, camera);
+    });
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      renderer.setAnimationLoop(null);
+      controls.dispose();
+      geometry.dispose();
+      material.dispose();
+      glowTexture.dispose();
+      renderer.dispose();
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
+    };
+  }, []);
+
+  return <div ref={mountRef} className="dust-layer three-starfield" aria-hidden="true" />;
+}
 
 export default function StarMapView({ nickname, planet, pet, recentVisitors }: StarMapViewProps) {
   const [planets, setPlanets] = useState<PublicPlanetDTO[]>([]);
@@ -137,31 +231,7 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
     <main className="cosmos-page">
       {/* 全屏深空背景 */}
       <div className="nebula" aria-hidden />
-      <div className="dust-layer" aria-hidden>
-        {DUST.map((star, i) => (
-          <span
-            key={i}
-            className="dust-star"
-            style={{
-              top: `${star.top}%`,
-              left: `${star.left}%`,
-              width: star.s,
-              height: star.s,
-              opacity: star.o,
-              animationDelay: `${star.d}s`,
-            }}
-          />
-        ))}
-        {CROSSES.map((c, i) => (
-          <span
-            key={`c${i}`}
-            className="dust-cross"
-            style={{ top: `${c.top}%`, left: `${c.left}%`, fontSize: c.size, animationDelay: `${c.d}s` }}
-          >
-            ✦
-          </span>
-        ))}
-      </div>
+      <ThreeStarfield />
 
       {/* 顶部导航 */}
       <div className="relative z-20 mx-auto w-full max-w-7xl px-5 pt-8 sm:px-8">
@@ -355,34 +425,20 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
             radial-gradient(800px 600px at 50% 110%, rgba(180, 215, 245, 0.55) 0%, rgba(180, 215, 245, 0) 62%),
             linear-gradient(180deg, #fbe3ee 0%, #fbeaf0 30%, #fdf6f4 52%, #eef2fa 78%, #dfe9f8 100%);
         }
-        .dust-layer {
+        :global(.three-starfield) {
           position: fixed;
           inset: 0;
           z-index: 1;
-          pointer-events: none;
+          pointer-events: auto;
         }
-        .dust-star {
-          position: absolute;
-          border-radius: 50%;
-          background: radial-gradient(circle at 40% 35%, #fff 0%, #ffeccc 55%, rgba(243, 207, 122, 0) 100%);
-          animation: twinkle 4.5s ease-in-out infinite;
+        :global(.three-starfield canvas) {
+          display: block;
+          width: 100%;
+          height: 100%;
+          cursor: grab;
         }
-        .dust-cross {
-          position: absolute;
-          color: rgba(200, 150, 180, 0.8);
-          text-shadow: 0 0 10px rgba(220, 170, 200, 0.6);
-          animation: twinkle 5s ease-in-out infinite;
-        }
-        @keyframes twinkle {
-          0%,
-          100% {
-            opacity: 0.2;
-            transform: scale(0.85);
-          }
-          50% {
-            opacity: 0.95;
-            transform: scale(1.1);
-          }
+        :global(.three-starfield canvas:active) {
+          cursor: grabbing;
         }
       `}</style>
     </main>
