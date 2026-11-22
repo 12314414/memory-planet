@@ -1,4 +1,4 @@
-export type ThemeKey = 'aurora' | 'sakura' | 'mint' | 'honey' | 'violet';
+export type ThemeKey = 'candy' | 'aurora' | 'sakura' | 'mint' | 'honey' | 'violet';
 
 export type ThemeStyle = {
   key: ThemeKey;
@@ -19,6 +19,18 @@ export type ThemeStyle = {
 };
 
 export const THEMES: Record<ThemeKey, ThemeStyle> = {
+  candy: {
+    key: 'candy',
+    label: '糖果星环',
+    sphere:
+      'radial-gradient(circle at 30% 24%, #fffdf8 0%, #f9e6f1 14%, #efc7e6 30%, #c9aeea 52%, #a98fd8 72%, #8873bb 100%)',
+    glow: 'rgba(236, 186, 220, 0.6)',
+    ring: 'rgba(232, 190, 118, 0.92)',
+    blobA: 'rgba(255, 176, 202, 0.85)',
+    blobB: 'rgba(150, 194, 246, 0.85)',
+    pet: 'linear-gradient(160deg, #fffdf9 0%, #ffeaf4 55%, #ffd6e8 100%)',
+    cover: 'linear-gradient(140deg, #fbdcea 0%, #e2d6fb 52%, #fdecc9 100%)',
+  },
   aurora: {
     key: 'aurora',
     label: '极光星云',

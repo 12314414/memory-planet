@@ -45,15 +45,15 @@ export default function SiteHeader({ nickname, active }: SiteHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/60 bg-white/55 backdrop-blur-xl">
+    <header className="paper-bar sticky top-0 z-40">
       <div className="wrap flex h-16 items-center justify-between gap-3">
         <Link href="/" className="group flex items-center gap-2.5">
           <span
             className="relative block h-8 w-8 rounded-full"
             style={{
               background:
-                'radial-gradient(circle at 32% 28%, #fff 0%, #f3e6ff 22%, #d3c0f5 55%, #a691d6 100%)',
-              boxShadow: '0 6px 14px -6px rgba(140,110,180,.8)',
+                'radial-gradient(circle at 32% 28%, #fffdf8 0%, #f8e3f0 20%, #e6bde7 52%, #b79ce0 100%)',
+              boxShadow: '0 6px 14px -6px rgba(180,140,200,.9), 0 0 0 2px rgba(255,255,255,.9)',
             }}
           >
             <span className="absolute left-1/2 top-1/2 h-[6px] w-[42px] -translate-x-1/2 -translate-y-1/2 rotate-[-18deg] rounded-full border border-[#eec97a]" />

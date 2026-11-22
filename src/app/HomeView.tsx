@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Intro from '@/components/Intro';
 import PlanetScene from '@/components/PlanetScene';
+import { appPath } from '@/lib/api-client';
 import { INTRO_DURATION } from '@/lib/config';
 import { VISIBILITY_LABEL, type Visibility } from '@/lib/constants';
 import type { PetProfile } from '@/lib/types';
@@ -47,12 +48,12 @@ export default function HomeView({
   }, []);
 
   const finishIntro = () => {
-    setShowIntro(false);
     try {
       sessionStorage.setItem(INTRO_KEY, '1');
     } catch {
       // ignore
     }
+    window.location.href = appPath('/star-map');
   };
 
   const replay = () => {

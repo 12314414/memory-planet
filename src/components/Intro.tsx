@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { INTRO_MODE } from '@/lib/config';
+import { appPath } from '@/lib/api-client';
+import { INTRO_MODE, INTRO_VIDEO } from '@/lib/config';
 
 type IntroProps = {
   duration?: number;
@@ -10,96 +11,78 @@ type IntroProps = {
 };
 
 /**
- * 开场动画占位组件。
- * 契约：{ duration?, skippable?, onFinish } —— 保持稳定，后续替换 lottie/video 不动调用方。
- * INTRO_MODE 控制形态：placeholder / lottie / video（后两者当前回退到 placeholder）。
+ * 全屏先导片：纸雕云窗 → 水彩糖果土星。
+ * 视频结束后淡出；加载失败或系统偏好减弱动效时，降级为同风格静态纸雕卡片。
  */
-export default function Intro({ duration = 3000, skippable = true, onFinish }: IntroProps) {
+export default function Intro({ duration = 9600, skippable = true, onFinish }: IntroProps) {
   const [leaving, setLeaving] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(INTRO_MODE !== 'video');
   const finished = useRef(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const finish = () => {
     if (finished.current) return;
     finished.current = true;
     setLeaving(true);
-    window.setTimeout(onFinish, 320);
+    window.setTimeout(onFinish, 420);
   };
 
   useEffect(() => {
-    const timer = window.setTimeout(finish, duration);
     document.body.style.overflow = 'hidden';
+    // 兜底：视频未触发 ended 时也能正常进入
+    const timer = window.setTimeout(finish, duration);
+    // 少数浏览器会拦截自动播放，静音手动播放一次兜底
+    void videoRef.current?.play().catch(() => undefined);
     return () => {
-      window.clearTimeout(timer);
       document.body.style.overflow = '';
+      window.clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duration]);
 
   return (
     <div
-      className="intro"
-      style={{ opacity: leaving ? 0 : 1, transition: 'opacity 0.32s ease' }}
+      className={`intro-film${ready ? ' is-ready' : ''}`}
+      style={{ opacity: leaving ? 0 : 1 }}
       role="dialog"
-      aria-label="开场动画"
-      data-intro-mode={INTRO_MODE}
+      aria-label="先导片"
+      data-intro-mode={videoFailed ? 'placeholder' : 'video'}
     >
-      <div className="relative flex flex-col items-center px-6 text-center">
-        <div className="relative mb-10">
-          <div className="intro-ring" />
-          <div className="intro-planet">
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background:
-                  'radial-gradient(circle at 68% 72%, rgba(255,214,232,0.85), rgba(255,214,232,0) 55%)',
-              }}
-            />
-            <div
-              className="absolute left-[16%] top-[18%] h-[10%] w-[26%] rounded-full bg-white/70 blur-[2px]"
-              style={{ transform: 'rotate(-18deg)' }}
-            />
-          </div>
-          <span className="absolute -right-6 -top-6 text-2xl text-[#f2cb78]" style={{ animation: 'twinkle 3s ease-in-out infinite' }}>
-            ✦
-          </span>
-          <span
-            className="absolute -left-8 bottom-2 text-lg text-[#f2cb78]"
-            style={{ animation: 'twinkle 3.4s ease-in-out infinite 0.8s' }}
-          >
-            ✧
-          </span>
-        </div>
+      {!videoFailed && (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <video
+          ref={videoRef}
+          className="intro-film-video"
+          src={appPath(INTRO_VIDEO)}
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          onCanPlay={() => setReady(true)}
+          onEnded={finish}
+          onError={() => setVideoFailed(true)}
+        />
+      )}
 
-        <p className="eyebrow fade-up fade-up-1">MEMORY PLANET</p>
-        <h1 className="title fade-up fade-up-1 mt-4 text-3xl leading-snug sm:text-[40px]">
-          有些回忆，值得一颗星球
-        </h1>
-        <p className="fade-up fade-up-2 muted mt-4 max-w-sm text-sm leading-relaxed">
-          把日子折成光，交给一只小宠物看守。
-          <br />
-          然后，等一阵来自别人的星风。
-        </p>
-
-        <div className="fade-up fade-up-3 mt-8 flex items-center gap-3 text-2xl">
-          <span className="paw" style={{ animationDelay: '0.55s' }}>
-            🐾
-          </span>
-          <span className="paw" style={{ animationDelay: '0.85s' }}>
-            🐾
-          </span>
-          <span className="paw" style={{ animationDelay: '1.15s' }}>
-            🐾
-          </span>
+      {videoFailed && (
+        <div className="intro-fallback" aria-hidden>
+          <span className="intro-fallback-planet" />
+          <span className="intro-fallback-ring" />
         </div>
+      )}
+
+      {/* 纸雕云边：让影片与整站的纸感画框衔接 */}
+      <div className="intro-film-frame" aria-hidden />
+
+      <div className="intro-film-brand">
+        <p className="eyebrow">MEMORY PLANET · 先导片</p>
+        <p className="intro-film-title">有些回忆，值得一颗星球</p>
       </div>
 
       {skippable && (
-        <button
-          type="button"
-          onClick={finish}
-          className="absolute bottom-6 right-6 rounded-full border border-white/80 bg-white/60 px-4 py-1.5 text-xs text-[#8b7a97] backdrop-blur transition hover:bg-white"
-        >
-          跳过开场 →
+        <button type="button" onClick={finish} className="intro-film-skip">
+          跳过先导片 →
         </button>
       )}
     </div>

@@ -4,17 +4,28 @@
 
 :root {
   --cream: #fffaf6;
-  --ink: #4a3b52;
-  --ink-soft: #7b6a86;
-  --ink-mute: #a596b0;
-  --lav: #cdbcf5;
+  --ink: #5b4763;
+  --ink-soft: #826c8e;
+  --ink-mute: #ab97b5;
+  --lav: #d8ccf7;
   --lav-deep: #a691d6;
-  --pink: #f8c8dd;
-  --peach: #fcd7bb;
-  --mint: #bfe6dd;
-  --gold: #f3cf7a;
+  --pink: #fbd3e1;
+  --peach: #fce0c6;
+  --mint: #c9e7de;
+  --gold: #f2cf83;
   --line: rgba(122, 96, 140, 0.14);
-  --glass: rgba(255, 255, 255, 0.68);
+  --glass: rgba(255, 253, 249, 0.82);
+  /* 先导片取色：纸雕奶油 / 樱粉 / 丁香紫 / 雾蓝 / 糖金 */
+  --paper: #fffdf9;
+  --paper-2: #fdf4ec;
+  --paper-3: #fbeaf0;
+  --sky-blush: #fbdae4;
+  --sky-lilac: #d8cff6;
+  --sky-blue: #cfe1f9;
+  --sky-peach: #ffe7cd;
+  --gold-deep: #e0b368;
+  --gold-light: #fbefc7;
+  --paper-shadow: rgba(146, 106, 128, 0.16);
 }
 
 * {
@@ -28,16 +39,30 @@ body {
 
 body {
   color: var(--ink);
-  background-color: #fffaf7;
+  background-color: #fdf7f2;
   background-image:
-    radial-gradient(900px 620px at 10% -12%, #ffe6f0 0%, rgba(255, 230, 240, 0) 62%),
-    radial-gradient(820px 640px at 92% -6%, #e9e2ff 0%, rgba(233, 226, 255, 0) 62%),
-    radial-gradient(760px 520px at 74% 104%, #fff0d8 0%, rgba(255, 240, 216, 0) 60%),
-    linear-gradient(180deg, #fffaf7 0%, #fbf6ff 52%, #fff8f4 100%);
+    radial-gradient(920px 640px at 10% -12%, #ffe7ef 0%, rgba(255, 231, 239, 0) 62%),
+    radial-gradient(860px 660px at 92% -6%, #e5dcfd 0%, rgba(229, 220, 253, 0) 62%),
+    radial-gradient(780px 560px at 74% 104%, #d9e7fb 0%, rgba(217, 231, 251, 0) 60%),
+    radial-gradient(720px 520px at 18% 100%, #ffeede 0%, rgba(255, 238, 222, 0) 60%),
+    linear-gradient(180deg, #fffaf4 0%, #fdf3f7 46%, #f5f3fd 76%, #f1f6fd 100%);
   background-attachment: fixed;
   font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, -apple-system,
     'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* 纸张纤维颗粒：让整站呈现纸雕 / 水彩纸的手作质感 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
 }
 
 ::selection {
@@ -50,17 +75,19 @@ body {
   }
 
   .card {
-    background: var(--glass);
-    border: 1px solid rgba(255, 255, 255, 0.86);
-    border-radius: 26px;
-    box-shadow: 0 18px 44px -28px rgba(94, 68, 110, 0.42);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    position: relative;
+    background: linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.96);
+    border-radius: 24px;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.95) inset,
+      0 2px 0 rgba(238, 214, 226, 0.55),
+      0 22px 44px -30px rgba(120, 84, 108, 0.55);
   }
 
   .card-soft {
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    background: rgba(255, 252, 247, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.92);
     border-radius: 22px;
   }
 
@@ -785,6 +812,639 @@ body {
 
 .fade-up-3 {
   animation-delay: 0.22s;
+}
+
+/* ---------- 先导片：纸雕云窗 → 水彩糖果土星 ---------- */
+.intro-film {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  overflow: hidden;
+  background: #fdf4ec;
+  transition: opacity 0.42s ease;
+}
+
+.intro-film-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+.intro-film.is-ready .intro-film-video {
+  opacity: 1;
+}
+
+.intro-film-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 244, 0.5) 0%, rgba(255, 250, 244, 0) 18%),
+    linear-gradient(0deg, rgba(255, 247, 241, 0.62) 0%, rgba(255, 247, 241, 0) 26%),
+    radial-gradient(120% 92% at 50% 50%, rgba(255, 247, 240, 0) 54%, rgba(255, 244, 236, 0.4) 100%);
+}
+
+.intro-film-brand {
+  position: absolute;
+  left: clamp(20px, 5vw, 64px);
+  bottom: clamp(24px, 6vh, 58px);
+  z-index: 2;
+  color: #6a5573;
+  text-shadow: 0 1px 14px rgba(255, 255, 255, 0.95);
+}
+
+.intro-film-title {
+  margin-top: 8px;
+  font-family: Georgia, 'Songti SC', 'STSong', serif;
+  font-size: clamp(17px, 2.2vw, 25px);
+  letter-spacing: 0.06em;
+}
+
+.intro-film-skip {
+  position: absolute;
+  right: clamp(16px, 4vw, 40px);
+  bottom: clamp(20px, 5vh, 44px);
+  z-index: 2;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 252, 247, 0.82);
+  color: #8b7594;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  box-shadow: 0 10px 22px -16px rgba(120, 84, 108, 0.7);
+  backdrop-filter: blur(10px);
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.intro-film-skip:hover {
+  background: #fffdf9;
+  transform: translateY(-1px);
+}
+
+.intro-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(60% 50% at 50% 44%, #fffdf8 0%, rgba(255, 253, 248, 0) 70%),
+    radial-gradient(44% 38% at 16% 12%, rgba(251, 218, 228, 0.9), transparent 70%),
+    radial-gradient(42% 38% at 86% 10%, rgba(214, 202, 248, 0.85), transparent 70%),
+    radial-gradient(48% 40% at 78% 90%, rgba(206, 226, 250, 0.9), transparent 72%),
+    linear-gradient(160deg, #fdf6f1 0%, #fbeef4 46%, #f2f1fd 76%, #ecf3fc 100%);
+}
+
+.intro-fallback-planet {
+  position: relative;
+  width: min(42vw, 300px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 24%, #fffdf8 0%, #f8e3f0 16%, #e6bde7 38%, #bba4ea 62%, #9179c4 100%);
+  box-shadow:
+    inset -16px -20px 40px rgba(96, 68, 120, 0.22),
+    0 30px 60px -24px rgba(120, 88, 140, 0.5);
+}
+
+.intro-fallback-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(70vw, 470px);
+  height: min(19vw, 128px);
+  border-radius: 50%;
+  border: 11px solid rgba(232, 190, 118, 0.9);
+  transform: translate(-50%, -50%) rotate(-16deg);
+  box-shadow: 0 0 26px rgba(232, 190, 118, 0.5);
+}
+
+/* ---------- 纸雕云层（四角云窗） ---------- */
+.cloud-corner {
+  position: absolute;
+  width: 46%;
+  height: clamp(130px, 25vh, 230px);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.cloud-corner--tl {
+  top: 0;
+  left: 0;
+}
+
+.cloud-corner--tr {
+  top: 0;
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.cloud-corner--bl {
+  bottom: -44px;
+  left: 0;
+  transform: scaleY(-1);
+}
+
+.cloud-corner--br {
+  bottom: -44px;
+  right: 0;
+  transform: scale(-1, -1);
+}
+
+.cloud-corner svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.paper-cloud-layer {
+  filter: drop-shadow(0 9px 12px rgba(150, 105, 125, 0.2));
+}
+
+/* 移动端：小星球改为流式排列，云朵收小，避免互相遮挡 */
+@media (max-width: 639px) {
+  .small-planet-slot {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+  }
+
+  .cloud-corner {
+    width: 64%;
+    height: 124px;
+  }
+
+  /* 移动端上下流式排列，底部云层会挤在小星球与访客卡片之间，直接收起 */
+  .cloud-corner--bl,
+  .cloud-corner--br {
+    display: none;
+  }
+
+  .map-planet-art {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: var(--decor-mobile-size, 44px) !important;
+    transform: none !important;
+  }
+
+  .map-planet-art:nth-child(n + 9) {
+    display: none;
+  }
+}
+
+/* ---------- 水彩星空底 ---------- */
+.sky-wash {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 46% at 50% 40%, rgba(255, 253, 247, 0.95) 0%, rgba(255, 253, 247, 0) 72%),
+    radial-gradient(40% 36% at 14% 8%, rgba(251, 216, 228, 0.85) 0%, rgba(251, 216, 228, 0) 70%),
+    radial-gradient(38% 34% at 88% 6%, rgba(212, 200, 248, 0.8) 0%, rgba(212, 200, 248, 0) 70%),
+    radial-gradient(46% 40% at 80% 92%, rgba(196, 219, 250, 0.85) 0%, rgba(196, 219, 250, 0) 72%),
+    radial-gradient(42% 36% at 18% 94%, rgba(255, 231, 204, 0.85) 0%, rgba(255, 231, 204, 0) 70%),
+    linear-gradient(165deg, #fdf7f1 0%, #fbeef3 38%, #f2f0fc 70%, #eaf1fb 100%);
+}
+
+.sky-wash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(280px 200px at 46% 52%, rgba(186, 160, 232, 0.35), transparent 70%),
+    radial-gradient(240px 180px at 62% 46%, rgba(251, 190, 214, 0.35), transparent 72%),
+    radial-gradient(300px 220px at 56% 62%, rgba(168, 204, 244, 0.3), transparent 74%);
+  filter: blur(28px);
+}
+
+/* ---------- 糖果土星（先导片主视觉） ---------- */
+.candy-saturn {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+.candy-halo {
+  position: absolute;
+  width: 82%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 200, 224, 0.55) 0%,
+    rgba(200, 178, 244, 0.4) 52%,
+    rgba(200, 178, 244, 0) 74%
+  );
+  filter: blur(26px);
+  z-index: 0;
+  animation: twinkle 8s ease-in-out infinite;
+}
+
+.candy-body {
+  position: relative;
+  width: 60%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 3;
+  background:
+    radial-gradient(circle at 30% 24%, #fffdf8 0%, #f9e6f1 14%, #efc7e6 30%, #c9aeea 52%, #a98fd8 72%, #8873bb 100%);
+  box-shadow:
+    inset -18px -20px 40px rgba(96, 68, 120, 0.22),
+    inset 14px 14px 32px rgba(255, 255, 255, 0.6),
+    0 28px 54px -20px rgba(120, 88, 140, 0.45);
+  animation: floaty 9s ease-in-out infinite;
+}
+
+.candy-body::before {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  background:
+    radial-gradient(56% 30% at 24% 64%, rgba(255, 176, 202, 0.9), transparent 72%),
+    radial-gradient(44% 24% at 68% 26%, rgba(255, 240, 176, 0.85), transparent 72%),
+    radial-gradient(62% 28% at 76% 74%, rgba(150, 194, 246, 0.9), transparent 74%),
+    radial-gradient(40% 22% at 34% 18%, rgba(196, 160, 240, 0.85), transparent 72%),
+    radial-gradient(38% 20% at 48% 52%, rgba(255, 214, 232, 0.75), transparent 72%);
+  filter: blur(8px);
+}
+
+.candy-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.22) 0 2px, rgba(255, 255, 255, 0) 2px 10px),
+    radial-gradient(circle at 32% 22%, rgba(255, 255, 255, 0.75), transparent 46%);
+  mix-blend-mode: soft-light;
+}
+
+.candy-ring-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 94%;
+  height: 31%;
+  transform: translate(-50%, -50%) rotate(-16deg);
+  z-index: 2;
+}
+
+.candy-ring-wrap--front {
+  z-index: 4;
+  clip-path: inset(49% 0 0 0);
+}
+
+.candy-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 6px solid transparent;
+  background: linear-gradient(
+      92deg,
+      #f8e8bd 0%,
+      #e6bd74 20%,
+      #fdf3cf 46%,
+      #dcab5c 70%,
+      #f7e5b2 100%
+    )
+    border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 3px 8px rgba(186, 146, 86, 0.32));
+}
+
+.candy-ring-wrap--back .candy-ring {
+  opacity: 0.92;
+}
+
+.gem {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, #ffffff 0%, #ffe9f3 28%, #c9b5f0 62%, #f5d28c 100%);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.95),
+    0 0 18px rgba(230, 186, 112, 0.75);
+}
+
+.gem.g1 {
+  left: 6%;
+  top: 42%;
+}
+
+.gem.g2 {
+  right: 12%;
+  top: 30%;
+}
+
+.gem.g3 {
+  right: 26%;
+  bottom: 12%;
+}
+
+.candy-drip {
+  position: absolute;
+  right: 16%;
+  top: 46%;
+  z-index: 5;
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.candy-drip span {
+  width: 8px;
+  border-radius: 6px 6px 60% 60%;
+  background: linear-gradient(180deg, #fbebc4 0%, #e8c179 62%, #d9a95a 100%);
+  box-shadow: 0 2px 6px rgba(190, 150, 90, 0.35);
+  animation: dripSway 6s ease-in-out infinite;
+}
+
+.candy-drip span:nth-child(1) {
+  height: 26px;
+}
+
+.candy-drip span:nth-child(2) {
+  height: 44px;
+  animation-delay: 0.6s;
+}
+
+.candy-drip span:nth-child(3) {
+  height: 18px;
+  animation-delay: 1.2s;
+}
+
+@keyframes dripSway {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(3px) scaleY(1.06);
+  }
+}
+
+/* 玫瑰星球上的草地与玫瑰 */
+.candy-garden {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+  z-index: 4;
+  border-radius: 50% 50% 0 0 / 60% 60% 0 0;
+  background: linear-gradient(180deg, rgba(205, 233, 168, 0.95) 0%, #96c46b 55%, #6f9f4d 100%);
+  box-shadow: inset 0 10px 18px rgba(255, 255, 255, 0.35);
+  display: grid;
+  place-items: end center;
+  padding-bottom: 6%;
+}
+
+/* PlanetScene 的糖果化：水彩条带 + 钻饰 + 流金 */
+.planet-scene--candy .planet-ring {
+  border-width: 6px;
+  border-color: rgba(232, 190, 118, 0.92);
+  box-shadow:
+    0 0 22px rgba(232, 190, 118, 0.55),
+    inset 0 0 12px rgba(255, 240, 200, 0.6);
+}
+
+.planet-band {
+  position: absolute;
+  inset: -8%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(54% 28% at 24% 66%, rgba(255, 176, 202, 0.75), transparent 72%),
+    radial-gradient(44% 22% at 70% 28%, rgba(255, 240, 176, 0.7), transparent 72%),
+    radial-gradient(60% 26% at 76% 74%, rgba(150, 194, 246, 0.75), transparent 74%),
+    radial-gradient(38% 20% at 34% 18%, rgba(196, 160, 240, 0.7), transparent 72%);
+  filter: blur(7px);
+}
+
+.planet-scene--candy .planet-sphere::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    118deg,
+    rgba(255, 255, 255, 0.2) 0 2px,
+    rgba(255, 255, 255, 0) 2px 10px
+  );
+  mix-blend-mode: soft-light;
+}
+
+.scene-gem {
+  position: absolute;
+  z-index: 5;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, #ffffff 0%, #ffe9f3 28%, #c9b5f0 62%, #f5d28c 100%);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.95),
+    0 0 18px rgba(230, 186, 112, 0.75);
+  animation: twinkle 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.scene-gem.gm-a {
+  left: 19%;
+  top: 42%;
+}
+
+.scene-gem.gm-b {
+  right: 17%;
+  top: 38%;
+  animation-delay: 1.2s;
+}
+
+.scene-gem.gm-c {
+  right: 27%;
+  bottom: 24%;
+  animation-delay: 2.2s;
+}
+
+.scene-drip {
+  position: absolute;
+  right: 17%;
+  top: 45%;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.scene-drip i {
+  width: 7px;
+  border-radius: 6px 6px 60% 60%;
+  background: linear-gradient(180deg, #fbebc4 0%, #e8c179 62%, #d9a95a 100%);
+  box-shadow: 0 2px 6px rgba(190, 150, 90, 0.35);
+  animation: dripSway 6s ease-in-out infinite;
+}
+
+.scene-drip i:nth-child(1) {
+  height: 20px;
+}
+
+.scene-drip i:nth-child(2) {
+  height: 34px;
+  animation-delay: 0.6s;
+}
+
+.scene-drip i:nth-child(3) {
+  height: 14px;
+  animation-delay: 1.2s;
+}
+
+/* ---------- 纸雕小星球 ---------- */
+.paper-planet {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.paper-planet-core {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  background: var(--pp-bg, radial-gradient(circle at 34% 28%, #fffdf8, #f6d9e6));
+  box-shadow:
+    0 10px 18px -10px rgba(140, 100, 120, 0.55),
+    inset -7px -9px 16px rgba(120, 86, 120, 0.2),
+    inset 5px 6px 12px rgba(255, 255, 255, 0.55);
+}
+
+.paper-planet-core::before {
+  content: '';
+  position: absolute;
+  inset: -8%;
+  background: var(--pp-craters, none);
+  filter: blur(2px);
+}
+
+.paper-planet-core::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.8), transparent 46%);
+}
+
+.paper-planet-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 138%;
+  height: 44%;
+  border-radius: 50%;
+  border: 2px solid rgba(230, 189, 118, 0.9);
+  transform: translate(-50%, -50%) rotate(-18deg);
+  box-shadow: 0 0 10px rgba(230, 189, 118, 0.45);
+  pointer-events: none;
+}
+
+.paper-planet-ring--back {
+  z-index: 0;
+  opacity: 0.7;
+}
+
+.paper-planet-ring--front {
+  z-index: 3;
+}
+
+.group:hover .paper-planet-core,
+.group:focus-visible .paper-planet-core {
+  box-shadow:
+    0 0 18px rgba(255, 255, 255, 0.9),
+    0 0 34px rgba(226, 181, 106, 0.6),
+    inset -7px -9px 16px rgba(120, 86, 120, 0.18);
+}
+
+/* ---------- 素材星球装饰层 ---------- */
+.map-planet-art-layer {
+  z-index: 6;
+}
+
+.map-planet-art {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.94;
+  filter: drop-shadow(0 9px 8px rgba(123, 95, 139, 0.16));
+}
+
+.map-planet-art img {
+  display: block;
+}
+
+/* ---------- 星图舞台 ---------- */
+.map-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.stage-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  border: 1px dashed rgba(178, 148, 196, 0.22);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.map-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 252, 246, 0.9);
+  color: #7c6489;
+  font-size: 12px;
+  box-shadow: 0 10px 20px -16px rgba(120, 84, 108, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.paper-bar {
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.95) 0%, rgba(255, 248, 242, 0.88) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    inset 0 -2px 0 rgba(238, 214, 226, 0.55),
+    0 14px 28px -26px rgba(120, 84, 108, 0.7);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.gem-star {
+  color: #e6bf76;
+  text-shadow:
+    0 0 10px rgba(246, 226, 176, 0.9),
+    0 0 22px rgba(230, 190, 120, 0.55);
 }
 
 /* 滚动条 */
