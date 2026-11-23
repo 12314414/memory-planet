@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import Rose from '@/components/Rose';
+import './little-prince.css';
 
 /**
  * 小王子的星球：产品叙事里的固定 NPC 星球。
- * 有玫瑰、有看日落的椅子、有和小王子的对话。
- * 这是一个独立页面（非用户创建的星球），点击星图里的「小王子的星球」进入。
+ * 有玫瑰、有狐狸、有可以点开的日落，以及和小王子的对话。
+ * 场景（晚霞天空、起伏草甸、野花）全部由 CSS 渐变与内联 SVG 绘制。
  */
 
 type Message = {
@@ -34,7 +35,7 @@ function littlePrinceReply(input: string): Message {
   if (/日落|夕阳|黄昏|难过|伤心/.test(q)) {
     return {
       speaker: '小王子',
-      text: '有一天，我看了四十四次日落。人在难过的时候，就喜欢看日落。你也可以点一下左边的太阳，和我一起看一次日落。',
+      text: '有一天，我看了四十四次日落。人在难过的时候，就喜欢看日落。你也可以点一下中间的太阳，和我一起看一次日落。',
     };
   }
   if (/狐狸|驯服|朋友/.test(q)) {
@@ -70,6 +71,110 @@ export default function LittlePrincePlanetPage() {
   const [input, setInput] = useState('');
   const [replying, setReplying] = useState(false);
 
+  const fieldRef = useRef<SVGGElement>(null);
+  const flowersRef = useRef<SVGGElement>(null);
+  const foregroundRef = useRef<SVGGElement>(null);
+  const starsRef = useRef<HTMLDivElement>(null);
+
+  /** 草叶、野花、前景草丛与星星都用固定种子随机生成，保证每次渲染一致 */
+  useEffect(() => {
+    const NS = 'http://www.w3.org/2000/svg';
+    const make = (name: string, attrs: Record<string, string | number>) => {
+      const node = document.createElementNS(NS, name);
+      Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
+      return node;
+    };
+    let seed = 20261025;
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+    const greens = ['#7f9a4a', '#93ad5c', '#68873e', '#a9bd6c', '#5d7a37'];
+    const petals = ['#fff6ea', '#ffe2ee', '#ffd0dd', '#fff3cf', '#ffffff'];
+
+    const field = fieldRef.current;
+    const flowers = flowersRef.current;
+    const foreground = foregroundRef.current;
+    const stars = starsRef.current;
+    if (!field || !flowers || !foreground || !stars) return;
+
+    for (let i = 0; i < 200; i++) {
+      const x = rnd() * 420;
+      const y = 296 + rnd() * 124;
+      const depth = (y - 296) / 124;
+      const len = 4 + depth * 16 + rnd() * 5;
+      const lean = (rnd() - 0.5) * 5;
+      field.appendChild(
+        make('path', {
+          d: `M${x.toFixed(1)} ${y.toFixed(1)} q ${lean.toFixed(1)} ${(-len * 0.6).toFixed(1)} ${(lean * 1.7).toFixed(1)} ${(-len).toFixed(1)}`,
+          stroke: greens[Math.floor(rnd() * greens.length)],
+          'stroke-width': (0.7 + depth * 1.1).toFixed(2),
+          'stroke-linecap': 'round',
+          fill: 'none',
+          opacity: (0.35 + depth * 0.45).toFixed(2),
+        })
+      );
+    }
+
+    for (let i = 0; i < 46; i++) {
+      const fx = rnd() * 420;
+      const fy = 302 + rnd() * 96;
+      const scale = (fy - 302) / 96;
+      const r = 1.1 + scale * 1.9;
+      flowers.appendChild(
+        make('circle', {
+          cx: fx.toFixed(1),
+          cy: fy.toFixed(1),
+          r: r.toFixed(2),
+          fill: petals[Math.floor(rnd() * petals.length)],
+          opacity: (0.55 + scale * 0.4).toFixed(2),
+        })
+      );
+      if (scale > 0.45) {
+        flowers.appendChild(
+          make('circle', {
+            cx: (fx + r * 0.3).toFixed(1),
+            cy: (fy + r * 0.3).toFixed(1),
+            r: (r * 0.34).toFixed(2),
+            fill: '#e9b45c',
+            opacity: '0.8',
+          })
+        );
+      }
+    }
+
+    for (let i = 0; i < 90; i++) {
+      const gx = rnd() * 420;
+      const len = 14 + rnd() * 26;
+      const lean = (rnd() - 0.5) * 10;
+      foreground.appendChild(
+        make('path', {
+          d: `M${gx.toFixed(1)} 420 q ${(lean * 0.5).toFixed(1)} ${(-len * 0.6).toFixed(1)} ${lean.toFixed(1)} ${(-len).toFixed(1)}`,
+          stroke: greens[Math.floor(rnd() * greens.length)],
+          'stroke-width': (1.6 + rnd() * 1.6).toFixed(2),
+          'stroke-linecap': 'round',
+          fill: 'none',
+          opacity: '0.9',
+        })
+      );
+    }
+
+    for (let i = 0; i < 26; i++) {
+      const star = document.createElement('i');
+      star.style.left = `${(rnd() * 100).toFixed(1)}%`;
+      star.style.top = `${(rnd() * 42).toFixed(1)}%`;
+      star.style.animationDelay = `${(rnd() * 3).toFixed(2)}s`;
+      stars.appendChild(star);
+    }
+
+    return () => {
+      field.innerHTML = '';
+      flowers.innerHTML = '';
+      foreground.innerHTML = '';
+      stars.innerHTML = '';
+    };
+  }, []);
+
   const send = () => {
     const value = input.trim();
     if (!value || replying) return;
@@ -81,6 +186,19 @@ export default function LittlePrincePlanetPage() {
       setMessages((prev) => [...prev, littlePrinceReply(value)]);
       setReplying(false);
     }, 700);
+  };
+
+  const toggleSunset = () => {
+    setSunset((prev) => {
+      const next = !prev;
+      if (next) {
+        setMessages((list) => [
+          ...list,
+          { speaker: '小王子', text: '有一天，我看了四十四次日落。人在难过的时候，就喜欢看日落。' },
+        ]);
+      }
+      return next;
+    });
   };
 
   return (
@@ -96,60 +214,196 @@ export default function LittlePrincePlanetPage() {
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           {/* 星球场景 */}
-          <section className="card relative overflow-hidden px-4 pb-14 pt-8">
-            <div className="relative mx-auto aspect-square w-full max-w-[420px]">
-              {/* 星球球体 */}
-              <div
-                className="absolute inset-[8%] rounded-full"
-                style={{
-                  background:
-                    'radial-gradient(circle at 32% 26%, #fffdf6 0%, #fbe7c8 24%, #ecc58f 50%, #d9a06b 72%, #b8794e 100%)',
-                  boxShadow:
-                    '0 30px 60px -20px rgba(90,52,30,0.5), inset -18px -22px 40px rgba(90,52,30,0.32)',
-                }}
-              />
-              {/* 草地 */}
-              <div
-                className="absolute bottom-[6%] left-[4%] h-[46%] w-[92%]"
-                style={{
-                  borderRadius: '50% 50% 0 0',
-                  background: 'linear-gradient(180deg, #c8e59a 0%, #8cc060 55%, #66a64a 100%)',
-                  boxShadow: 'inset 0 12px 20px rgba(255,255,255,0.3)',
-                }}
-              />
-              {/* 玫瑰（在星球上） */}
-              <div className="absolute bottom-[30%] left-[24%]" style={{ transform: 'scale(0.7)' }}>
-                <Rose size={110} floating={false} />
+          <section className="card scene-card">
+            <div className={`lp-scene${sunset ? ' is-dusk' : ''}`}>
+              <div className="lp-frame">
+                <div className="lp-sky lp-sky-day" />
+                <div className="lp-sky lp-sky-dusk" />
+                <div className="lp-stars" ref={starsRef} />
+
+                <div className="lp-cloud c1" />
+                <div className="lp-cloud c2" />
+                <div className="lp-cloud c3" />
+                <div className="lp-cloud c4" />
+
+                <button className="lp-sun-btn" onClick={toggleSunset} aria-label="看日落" title="看一次日落">
+                  <div className="lp-sun" />
+                </button>
+
+                <svg className="lp-art" viewBox="0 0 420 420" aria-hidden="true">
+                  <defs>
+                    <filter id="lp-wc" x="-8%" y="-8%" width="116%" height="116%">
+                      <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="3" seed="9" result="n" />
+                      <feDisplacementMap in="SourceGraphic" in2="n" scale="6" xChannelSelector="R" yChannelSelector="G" />
+                    </filter>
+                    <filter id="lp-soft" x="-30%" y="-30%" width="160%" height="160%">
+                      <feGaussianBlur stdDeviation="3" />
+                    </filter>
+                    <linearGradient id="lp-mid" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#b6c47a" />
+                      <stop offset="100%" stopColor="#7e9a4e" />
+                    </linearGradient>
+                    <linearGradient id="lp-near" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#93ac5c" />
+                      <stop offset="55%" stopColor="#6d8b43" />
+                      <stop offset="100%" stopColor="#4f6b34" />
+                    </linearGradient>
+                    <radialGradient id="lp-sun-patch" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="rgba(255,214,146,.85)" />
+                      <stop offset="60%" stopColor="rgba(255,198,120,.28)" />
+                      <stop offset="100%" stopColor="rgba(255,198,120,0)" />
+                    </radialGradient>
+                    <linearGradient id="lp-haze" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="rgba(255,240,214,0)" />
+                      <stop offset="60%" stopColor="rgba(255,240,214,.55)" />
+                      <stop offset="100%" stopColor="rgba(255,240,214,.15)" />
+                    </linearGradient>
+                    <linearGradient id="lp-wash" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#e8874f" stopOpacity="0" />
+                      <stop offset="16%" stopColor="#e8874f" stopOpacity="1" />
+                      <stop offset="100%" stopColor="#e8874f" stopOpacity="1" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* 远景雾带 */}
+                  <rect x="0" y="236" width="420" height="70" fill="url(#lp-haze)" />
+
+                  {/* 远山与树线 */}
+                  <g filter="url(#lp-wc)">
+                    <path
+                      d="M0 272 Q 40 262 78 268 Q 112 258 148 266 Q 186 258 220 266 Q 258 258 296 266 Q 336 256 372 266 Q 398 262 420 268 L420 300 L0 300 Z"
+                      fill="#8f9a5c"
+                      opacity="0.72"
+                    />
+                    <path
+                      d="M0 278 Q 50 270 96 276 Q 140 268 184 276 Q 230 268 274 276 Q 320 268 364 276 Q 396 272 420 278 L420 306 L0 306 Z"
+                      fill="#78884c"
+                      opacity="0.8"
+                    />
+                  </g>
+
+                  {/* 中景草坡 */}
+                  <g filter="url(#lp-wc)">
+                    <path
+                      d="M0 292 Q 58 278 116 288 Q 176 298 236 286 Q 296 274 356 286 Q 392 292 420 288 L420 420 L0 420 Z"
+                      fill="url(#lp-mid)"
+                    />
+                  </g>
+                  <ellipse cx="212" cy="300" rx="150" ry="30" fill="url(#lp-sun-patch)" opacity="0.55" />
+                  <path
+                    d="M0 300 Q 62 286 122 296 Q 182 306 244 294 Q 306 282 366 294 Q 394 299 420 296"
+                    fill="none"
+                    stroke="#e8dc9a"
+                    strokeOpacity="0.5"
+                    strokeWidth="2.4"
+                    filter="url(#lp-soft)"
+                  />
+
+                  {/* 近景草甸 */}
+                  <g filter="url(#lp-wc)">
+                    <path
+                      d="M0 330 Q 70 318 140 330 Q 210 342 280 328 Q 350 314 420 330 L420 420 L0 420 Z"
+                      fill="url(#lp-near)"
+                    />
+                  </g>
+                  <ellipse cx="196" cy="344" rx="170" ry="34" fill="url(#lp-sun-patch)" opacity="0.5" />
+
+                  {/* 草叶与野花（脚本生成） */}
+                  <g ref={fieldRef} />
+                  <g ref={flowersRef} />
+
+                  {/* 影子 */}
+                  <g filter="url(#lp-soft)" opacity="0.5">
+                    <ellipse cx="258" cy="340" rx="23" ry="5" fill="#3c4a22" />
+                    <ellipse cx="180" cy="345" rx="13" ry="3.5" fill="#3c4a22" />
+                    <ellipse cx="216" cy="350" rx="15" ry="3.5" fill="#3c4a22" />
+                  </g>
+
+                  {/* 小王子 */}
+                  <g transform="translate(224,284) scale(.50)">
+                    <path d="M76 54 Q98 46 118 32 Q132 22 144 25 Q137 34 126 41 Q104 55 84 59 Q79 60 76 54 Z" fill="#f3c24d" />
+                    <path d="M80 52 Q100 46 118 35" stroke="#e0ad3c" strokeWidth="2" fill="none" opacity="0.5" />
+                    <circle cx="42" cy="34" r="14" fill="#e9a938" />
+                    <circle cx="82" cy="34" r="13" fill="#e9a938" />
+                    <circle cx="62" cy="22" r="15" fill="#e9a938" />
+                    <circle cx="46" cy="30" r="12" fill="#f6c95c" />
+                    <circle cx="60" cy="20" r="13" fill="#f6c95c" />
+                    <circle cx="76" cy="26" r="12" fill="#f6c95c" />
+                    <circle cx="84" cy="38" r="10" fill="#f6c95c" />
+                    <circle cx="40" cy="42" r="9" fill="#f6c95c" />
+                    <circle cx="58" cy="26" r="6" fill="#ffd971" opacity="0.85" />
+                    <circle cx="46" cy="36" r="5" fill="#ffd971" opacity="0.7" />
+                    <ellipse cx="62" cy="46" rx="17" ry="15" fill="#ffe9d0" />
+                    <path d="M46 38 Q52 30 58 34 Q54 38 46 38 Z" fill="#f6c95c" />
+                    <circle cx="55" cy="46" r="2.2" fill="#3d2c4a" />
+                    <circle cx="69" cy="46" r="2.2" fill="#3d2c4a" />
+                    <circle cx="51" cy="52" r="3.2" fill="#f7b8a0" opacity="0.75" />
+                    <circle cx="73" cy="52" r="3.2" fill="#f7b8a0" opacity="0.75" />
+                    <path d="M58 55 Q62 58 66 55" stroke="#c07a5a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+                    <path d="M50 60 Q62 66 74 60 L78 66 Q62 74 46 66 Z" fill="#f3c24d" />
+                    <path d="M52 64 Q48 80 54 92 L90 92 Q94 78 88 64 Q72 58 52 64 Z" fill="#5aa86a" />
+                    <rect x="52" y="78" width="38" height="5" rx="2.5" fill="#e8bd6a" />
+                    <path d="M50 92 Q62 100 92 92 Q94 98 88 100 L56 100 Q50 98 50 92 Z" fill="#4f9a60" />
+                    <ellipse cx="54" cy="101" rx="7" ry="4" fill="#5b4636" />
+                    <ellipse cx="88" cy="101" rx="7" ry="4" fill="#5b4636" />
+                    <path d="M56 70 Q58 78 64 82" stroke="#4f9a60" strokeWidth="5" fill="none" strokeLinecap="round" />
+                    <path d="M86 70 Q82 78 74 82" stroke="#4f9a60" strokeWidth="5" fill="none" strokeLinecap="round" />
+                    <circle cx="64" cy="82" r="3.4" fill="#ffe9d0" />
+                    <circle cx="74" cy="82" r="3.4" fill="#ffe9d0" />
+                    <path d="M69 82 L69 90" stroke="#5b9a46" strokeWidth="2" fill="none" />
+                    <circle cx="69" cy="78" r="6" fill="#e84a68" />
+                    <circle cx="69" cy="78" r="3.6" fill="#f47f92" />
+                    <path d="M65 75 Q67 72 70 73" stroke="#ffd7e0" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+                  </g>
+
+                  {/* 玫瑰 */}
+                  <g transform="translate(155,293) scale(.42)">
+                    <path d="M60 112 Q58 90 60 78" stroke="#5b9a46" strokeWidth="3.5" fill="none" />
+                    <path d="M52 98 Q44 92 46 84 Q54 86 54 96 Z" fill="#6fae52" />
+                    <path d="M68 92 Q76 86 74 78 Q66 80 66 90 Z" fill="#6fae52" />
+                    <ellipse cx="60" cy="58" rx="17" ry="13" fill="#f47f92" />
+                    <ellipse cx="60" cy="52" rx="11" ry="9" fill="#f0617c" />
+                    <ellipse cx="60" cy="48" rx="7" ry="6" fill="#e84a68" />
+                    <path d="M48 50 Q44 42 52 42 Q50 48 48 50 Z" fill="#ffd7e0" />
+                    <path d="M72 50 Q76 42 68 42 Q70 48 72 50 Z" fill="#ffd7e0" />
+                    <circle cx="60" cy="48" r="2.5" fill="#f7c86b" />
+                    <ellipse cx="60" cy="112" rx="16" ry="4" fill="rgba(120,90,60,0.25)" />
+                  </g>
+
+                  {/* 狐狸 */}
+                  <g transform="translate(191,314) scale(.40)">
+                    <path d="M84 74 Q104 72 108 56 Q110 44 100 40 Q104 52 96 60 Q88 68 78 70 Z" fill="#e88b4a" />
+                    <path d="M100 44 Q104 48 100 56 Q96 62 90 64 Q98 58 100 44 Z" fill="#fff6ea" />
+                    <path d="M40 76 Q38 60 52 56 L72 56 Q88 60 86 76 Q64 84 40 76 Z" fill="#e88b4a" />
+                    <ellipse cx="63" cy="72" rx="14" ry="9" fill="#fff6ea" />
+                    <path d="M44 34 L40 16 L56 26 Z" fill="#e88b4a" />
+                    <path d="M46 30 L44 22 L52 27 Z" fill="#4a3855" />
+                    <path d="M76 34 L80 16 L64 26 Z" fill="#e88b4a" />
+                    <path d="M74 30 L76 22 L68 27 Z" fill="#4a3855" />
+                    <ellipse cx="60" cy="42" rx="20" ry="17" fill="#e88b4a" />
+                    <ellipse cx="60" cy="50" rx="12" ry="8" fill="#fff6ea" />
+                    <path d="M50 40 Q54 37 58 40" stroke="#4a3855" strokeWidth="2" fill="none" strokeLinecap="round" />
+                    <path d="M64 40 Q68 37 72 40" stroke="#4a3855" strokeWidth="2" fill="none" strokeLinecap="round" />
+                    <circle cx="60" cy="48" r="2.4" fill="#4a3855" />
+                    <path d="M56 53 Q60 56 64 53" stroke="#c97a4a" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+                    <ellipse cx="52" cy="80" rx="5" ry="3" fill="#fff6ea" />
+                    <ellipse cx="74" cy="80" rx="5" ry="3" fill="#fff6ea" />
+                  </g>
+
+                  {/* 前景草丛 */}
+                  <g ref={foregroundRef} />
+
+                  {/* 黄昏暖色滤镜 */}
+                  <rect className="dusk-wash" x="0" y="228" width="420" height="192" fill="url(#lp-wash)" />
+                </svg>
+
+                <div className="lp-grain" />
+                <p className="lp-sun-hint">
+                  {sunset ? <b>第四十四次日落 ✧</b> : <b>☀️ 点太阳看日落</b>}
+                </p>
               </div>
-              {/* 小王子（坐在星球上看日落，面朝西边） */}
-              <div className="absolute bottom-[6%] right-[14%]" style={{ transform: 'scale(0.62)', transformOrigin: 'bottom center' }}>
-                <LittlePrinceSitting />
-              </div>
-              {/* 日落：太阳从东边升起、在西边落下。默认在西边地平线附近 */}
-              <button
-                onClick={() => setSunset((v) => !v)}
-                className="absolute left-[14%] top-[22%] cursor-pointer"
-                aria-label="看日落"
-                title="看一次日落"
-              >
-                <div
-                  className="h-12 w-12 rounded-full transition-all duration-[1500ms] ease-in"
-                  style={{
-                    background: sunset
-                      ? 'radial-gradient(circle at 50% 60%, #ffb06b 0%, #f07a50 45%, #d84e3a 100%)'
-                      : 'radial-gradient(circle at 50% 50%, #fff6d8 0%, #ffe8a8 55%, #f7d98a 100%)',
-                    boxShadow: sunset ? '0 0 44px rgba(240,120,80,0.85)' : '0 0 30px rgba(255,232,168,0.6)',
-                    transform: sunset ? 'translate(30px, 90px)' : 'none',
-                  }}
-                />
-              </button>
-              <p className="absolute left-[6%] top-[44%] text-[11px] text-[#a07a5a]">
-                {sunset ? '西边的日落' : '☀️ 点我看日落'}
-              </p>
             </div>
-            <p className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] text-[#a596b0]">
-              小王子 · 玫瑰 · 日落
-            </p>
+            <p className="lp-caption">「你在你的玫瑰身上花费的时间，让你的玫瑰变得如此重要」</p>
           </section>
 
           {/* 聊天区 */}
@@ -244,26 +498,5 @@ function LittlePrinceAvatar() {
         <path d="M46 66 Q46 84 42 104 L78 104 Q74 84 74 66 Q60 76 46 66 Z" fill="#5aa86a" />
       </svg>
     </div>
-  );
-}
-
-/** 坐着的小王子（看日落姿态） */
-function LittlePrinceSitting() {
-  return (
-    <svg viewBox="0 0 120 120" width="100%" height="100%">
-      <ellipse cx="60" cy="34" rx="22" ry="19" fill="#f6c95c" />
-      <ellipse cx="60" cy="44" rx="18" ry="16" fill="#ffe9d0" />
-      <circle cx="54" cy="43" r="2" fill="#3d2c4a" />
-      <circle cx="66" cy="43" r="2" fill="#3d2c4a" />
-      <path d="M56 52 Q60 55 64 52" stroke="#c07a5a" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-      <path d="M46 54 Q60 60 74 54 L78 62 Q60 70 42 62 Z" fill="#f3c24d" />
-      <path d="M44 84 Q40 88 46 88 L58 88 L58 62 L74 62 L74 88 L86 88 Q92 88 88 84" fill="#5aa86a" />
-      <path d="M50 60 Q44 66 42 74" stroke="#5aa86a" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <circle cx="42" cy="76" r="3" fill="#ffe9d0" />
-      <path d="M70 60 Q76 66 78 74" stroke="#5aa86a" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <circle cx="78" cy="76" r="3" fill="#ffe9d0" />
-      <path d="M48 88 L54 88 L54 100 Q54 104 50 104 L48 104 Z" fill="#5b4636" />
-      <path d="M66 88 L72 88 L72 100 Q72 104 68 104 L66 104 Z" fill="#5b4636" />
-    </svg>
   );
 }

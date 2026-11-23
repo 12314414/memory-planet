@@ -1,0 +1,258 @@
+/* 小王子的星球 · 水彩晚霞场景
+   场景全部由 CSS 渐变 + 内联 SVG 绘制，不依赖位图素材。 */
+
+.scene-card {
+  padding: 18px;
+}
+
+.lp-scene {
+  position: relative;
+}
+
+.lp-frame {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 20px;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 -30px 50px -34px rgba(92, 60, 72, 0.5);
+}
+
+/* ---------- 天空 ---------- */
+.lp-sky {
+  position: absolute;
+  inset: 0;
+  transition: opacity 2.6s ease;
+}
+
+.lp-sky-day {
+  background:
+    radial-gradient(52% 34% at 51% 55%, rgba(255, 250, 226, 0.98) 0%, rgba(255, 240, 200, 0.55) 45%, rgba(255, 238, 196, 0) 72%),
+    radial-gradient(75% 52% at 92% 14%, rgba(255, 168, 178, 0.5) 0%, rgba(255, 168, 178, 0) 66%),
+    linear-gradient(180deg, #fde0cd 0%, #fbcbb6 16%, #ffc6a6 32%, #ffbb95 46%, #ffc9a0 60%, #ffe0b8 74%, #fff0d6 86%, #fff8e8 100%);
+}
+
+.lp-sky-dusk {
+  opacity: 0;
+  background:
+    radial-gradient(56% 36% at 51% 58%, rgba(255, 214, 160, 0.9) 0%, rgba(255, 180, 120, 0.4) 46%, rgba(255, 180, 120, 0) 74%),
+    radial-gradient(80% 54% at 88% 8%, rgba(120, 96, 166, 0.5) 0%, rgba(120, 96, 166, 0) 64%),
+    linear-gradient(180deg, #8f7bb0 0%, #ab7fa0 14%, #cc8b8f 30%, #e89a7c 46%, #f6ac74 62%, #ffc78c 78%, #ffdfae 90%, #fff0cd 100%);
+}
+
+.lp-scene.is-dusk .lp-sky-day { opacity: 0; }
+.lp-scene.is-dusk .lp-sky-dusk { opacity: 1; }
+
+/* ---------- 云 ---------- */
+.lp-cloud {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(6px);
+  transition: background 2.6s ease, opacity 2.6s ease;
+}
+
+.lp-cloud::before {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  background: inherit;
+}
+
+.lp-cloud.c1 {
+  left: -4%;
+  top: 9%;
+  width: 52%;
+  height: 15%;
+  background: radial-gradient(ellipse at 45% 60%, rgba(255, 246, 238, 0.98) 0%, rgba(255, 226, 212, 0.6) 52%, rgba(255, 226, 212, 0) 80%);
+}
+.lp-cloud.c1::before {
+  left: 22%;
+  top: -58%;
+  width: 58%;
+  height: 110%;
+  background: radial-gradient(ellipse at 50% 60%, rgba(255, 246, 238, 0.9) 0%, rgba(255, 226, 212, 0) 76%);
+}
+
+.lp-cloud.c2 {
+  right: -6%;
+  top: 4%;
+  width: 48%;
+  height: 13%;
+  background: radial-gradient(ellipse at 50% 55%, rgba(255, 240, 232, 0.9) 0%, rgba(255, 214, 204, 0.45) 55%, rgba(255, 214, 204, 0) 82%);
+}
+
+.lp-cloud.c3 {
+  left: 16%;
+  top: 23%;
+  width: 40%;
+  height: 11%;
+  background: radial-gradient(ellipse at 50% 55%, rgba(255, 232, 216, 0.8) 0%, rgba(255, 206, 190, 0.36) 58%, rgba(255, 206, 190, 0) 84%);
+}
+
+.lp-cloud.c4 {
+  right: 4%;
+  top: 29%;
+  width: 34%;
+  height: 9%;
+  opacity: 0.85;
+  background: radial-gradient(ellipse at 50% 55%, rgba(255, 224, 208, 0.72) 0%, rgba(255, 198, 182, 0.3) 58%, rgba(255, 198, 182, 0) 84%);
+}
+
+.lp-scene.is-dusk .lp-cloud.c1 {
+  background: radial-gradient(ellipse at 45% 60%, rgba(255, 206, 176, 0.95) 0%, rgba(238, 150, 140, 0.55) 54%, rgba(238, 150, 140, 0) 82%);
+}
+.lp-scene.is-dusk .lp-cloud.c1::before {
+  background: radial-gradient(ellipse at 50% 60%, rgba(255, 196, 168, 0.85) 0%, rgba(232, 140, 132, 0) 78%);
+}
+.lp-scene.is-dusk .lp-cloud.c2 {
+  background: radial-gradient(ellipse at 50% 55%, rgba(250, 186, 160, 0.9) 0%, rgba(226, 132, 132, 0.45) 58%, rgba(226, 132, 132, 0) 84%);
+}
+.lp-scene.is-dusk .lp-cloud.c3 {
+  background: radial-gradient(ellipse at 50% 55%, rgba(255, 190, 158, 0.8) 0%, rgba(226, 138, 128, 0.32) 60%, rgba(226, 138, 128, 0) 86%);
+}
+.lp-scene.is-dusk .lp-cloud.c4 { opacity: 0.55; }
+
+/* ---------- 太阳 ---------- */
+.lp-sun-btn {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 76px;
+  height: 76px;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.lp-sun {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 48%, #fffef8 0%, #fff7d4 42%, #ffe7ac 76%, #ffd894 100%);
+  box-shadow:
+    0 0 30px rgba(255, 240, 190, 0.9),
+    0 0 80px rgba(255, 224, 160, 0.6),
+    0 0 150px rgba(255, 206, 150, 0.35);
+  transition: transform 2.8s cubic-bezier(0.4, 0.05, 0.3, 1), box-shadow 2.8s ease, background 2.8s ease;
+}
+
+.lp-scene.is-dusk .lp-sun {
+  transform: translateY(62px) scale(0.9);
+  background: radial-gradient(circle at 50% 52%, #fff4da 0%, #ffd79a 36%, #ffab68 72%, #f4835a 100%);
+  box-shadow:
+    0 0 34px rgba(255, 196, 130, 0.95),
+    0 0 100px rgba(250, 150, 96, 0.7),
+    0 0 190px rgba(238, 120, 92, 0.45);
+}
+
+.lp-sun-hint {
+  position: absolute;
+  left: 5%;
+  top: 6%;
+  z-index: 6;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 5px 11px;
+  border-radius: 999px;
+  color: #8a6248;
+  background: rgba(255, 250, 240, 0.55);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 6px 14px -10px rgba(120, 70, 50, 0.6);
+  transition: all 2.6s ease;
+  pointer-events: none;
+}
+
+.lp-sun-hint b { font-weight: 600; }
+
+.lp-scene.is-dusk .lp-sun-hint {
+  color: #fff1d2;
+  background: rgba(70, 42, 60, 0.28);
+  border-color: rgba(255, 220, 190, 0.35);
+}
+
+/* ---------- 插画 ---------- */
+.lp-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.dusk-wash {
+  opacity: 0;
+  mix-blend-mode: multiply;
+  transition: opacity 2.6s ease;
+}
+
+.lp-scene.is-dusk .dusk-wash { opacity: 0.24; }
+
+/* ---------- 星星 ---------- */
+.lp-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 2.4s ease;
+  pointer-events: none;
+}
+
+.lp-scene.is-dusk .lp-stars { opacity: 0.75; }
+
+.lp-stars i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff6dc;
+  box-shadow: 0 0 6px rgba(255, 240, 200, 0.9);
+  animation: lp-twinkle 3.4s ease-in-out infinite;
+}
+
+@keyframes lp-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.85); }
+  50% { opacity: 0.95; transform: scale(1.1); }
+}
+
+/* ---------- 纸纹 ---------- */
+.lp-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  opacity: 0.2;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+
+.lp-caption {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 11px;
+  font-style: italic;
+  color: #b09ec0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-sky,
+  .lp-cloud,
+  .lp-sun,
+  .lp-sun-hint,
+  .lp-stars,
+  .dusk-wash {
+    transition-duration: 0.01ms !important;
+  }
+  .lp-stars i { animation: none; }
+}
