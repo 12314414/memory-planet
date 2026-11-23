@@ -1,6 +1,8 @@
 'use client';
 
 import { demoFetch } from './demo-store';
+import { remoteFetch } from './remote-store';
+import { SUPABASE_ENABLED } from './supabase';
 
 /** GitHub Pages 静态演示版：没有服务端，接口由 localStorage 数据层模拟 */
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === '1';
@@ -13,6 +15,8 @@ export function appPath(path: string) {
 }
 
 export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  // 配置了 Supabase 时优先走云端数据层（多人共享真实数据）
+  if (SUPABASE_ENABLED) return remoteFetch(input, init);
   if (DEMO_MODE) return demoFetch(input, init);
   return fetch(`${BASE_PATH}${input}`, init);
 }

@@ -654,7 +654,7 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
     planet.inviteCode = code;
     planet.updatedAt = now();
     save();
-    return json({ inviteCode: code, path: `/planet/${planet.id}?code=${code}` });
+    return json({ inviteCode: code, path: `/planet/view?id=${planet.id}&code=${code}` });
   }
 
   if (path === '/api/planet/owner/settings' && method === 'PATCH') {

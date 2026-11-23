@@ -173,7 +173,7 @@ export default function OwnerDashboard({ nickname, initial }: OwnerDashboardProp
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href={`/planet/${initial.id}`} className="btn btn-ghost btn-sm">
+          <Link href={`/planet/view?id=${initial.id}`} className="btn btn-ghost btn-sm">
             访客视角
           </Link>
           <Link href="/star-map" className="btn btn-ghost btn-sm">

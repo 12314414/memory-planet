@@ -49,7 +49,7 @@ export default function FloatingPlanet({ planet, top, left, size, delay = 0 }: F
 
   return (
     <Link
-      href={`/planet/${planet.id}`}
+      href={`/planet/view?id=${planet.id}`}
       aria-label={`去「${planet.name}」串门`}
       className="group absolute z-10 block outline-none transition-all duration-300 hover:z-30 focus-visible:z-30"
       style={{ top, left, width: size }}

@@ -257,7 +257,7 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
         setCodeError('没有找到这个邀请码对应的星球');
         return;
       }
-      warpTo('这颗星球', `/planet/${planetId}?code=${value}`);
+      warpTo('这颗星球', `/planet/view?id=${planetId}&code=${value}`);
       return;
     }
     warpTo('这颗星球', `/planet/visit/${value}`);
@@ -532,7 +532,7 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
           onEnter={() => {
             const target = activePlanet;
             setActivePlanet(null);
-            warpTo(target.name, `/planet/${target.id}`);
+            warpTo(target.name, `/planet/view?id=${target.id}`);
           }}
         />
       )}

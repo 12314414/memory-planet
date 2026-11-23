@@ -23,7 +23,7 @@ export default function InviteCard({ inviteCode, planetId, onReset }: InviteCard
   // 静态演示版没有服务端路由，直接用「星球 id + 邀请码」的形式分享
   const link =
     DEMO_MODE && planetId
-      ? `${origin}${BASE_PATH}/planet/${planetId}?code=${inviteCode}`
+      ? `${origin}${BASE_PATH}/planet/view?id=${planetId}&code=${inviteCode}`
       : `${origin}${BASE_PATH}/planet/visit/${inviteCode}`;
 
   const copy = async () => {

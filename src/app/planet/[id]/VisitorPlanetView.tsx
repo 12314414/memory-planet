@@ -99,7 +99,7 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
                   event.preventDefault();
                   const value = code.trim().toUpperCase();
                   if (value.length === 6) {
-                    window.location.href = appPath(`/planet/${planetId}?code=${value}`);
+                    window.location.href = appPath(`/planet/view?id=${planetId}&code=${value}`);
                   }
                 }}
               >

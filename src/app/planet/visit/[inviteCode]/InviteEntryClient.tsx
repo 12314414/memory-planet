@@ -31,7 +31,7 @@ export default function InviteEntryClient() {
           if (alive) setStatus('invalid');
           return;
         }
-        window.location.replace(appPath(`/planet/${data.id}?code=${encodeURIComponent(code)}`));
+        window.location.replace(appPath(`/planet/view?id=${data.id}&code=${encodeURIComponent(code)}`));
       } catch {
         if (alive) setStatus('invalid');
       }
