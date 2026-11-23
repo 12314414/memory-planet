@@ -37,7 +37,7 @@ jobs:
           ZAI_MODEL: "glm-4-flash"
           ZAI_IMAGE_MODEL: "glm-image"
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-          NEXT_PUBLIC_AI_PROXY_URL: "https://proxy-phi-flame-28.vercel.app"
+          NEXT_PUBLIC_AI_PROXY_URL: "https://eedgshhergpkxurdaqud.supabase.co/functions/v1"
 
       - uses: actions/upload-pages-artifact@v3
         with:

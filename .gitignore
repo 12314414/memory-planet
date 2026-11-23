@@ -9,8 +9,7 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 prisma/schema.postgres.generated.prisma
 
-# 本地视觉预览原型（仅开发用，不进生产）
-prototype/
-
 .vercel
 .env*
+# 仅含公开配置（AI 代理地址），需要随仓库同步，供任意机器构建
+!.env.production

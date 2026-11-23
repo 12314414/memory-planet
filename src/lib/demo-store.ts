@@ -752,10 +752,10 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
     }
     const pet = parsePet(planet.petProfileJson);
 
-    // 静态站没有服务端，AI 走 Vercel Serverless 代理；失败/未配置则模板降级
+    // 静态站没有服务端，AI 走 Supabase Edge Functions 代理；失败/未配置则模板降级
     if (AI_PROXY_URL) {
       try {
-        const upstream = await fetch(`${AI_PROXY_URL}/api/ai/chat`, {
+        const upstream = await fetch(`${AI_PROXY_URL}/ai-chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -807,7 +807,7 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
   if (path === '/api/ai/image' && method === 'POST') {
     if (AI_PROXY_URL) {
       try {
-        const upstream = await fetch(`${AI_PROXY_URL}/api/ai/image`, {
+        const upstream = await fetch(`${AI_PROXY_URL}/ai-image`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
