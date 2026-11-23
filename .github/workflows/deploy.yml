@@ -31,6 +31,8 @@ jobs:
         run: npm run build:gh-pages
         env:
           GH_PAGES: "true"
+          NEXT_PUBLIC_SUPABASE_URL: "https://begrmhzzcqbiozdfmafl.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_aykQBjKMeV4kT5AjGB4xaQ_wXT3XgKl"
           NEXT_PUBLIC_DEMO_MODE: "1"
           ZAI_BASE_URL: "https://open.bigmodel.cn/api/paas/v4"
           ZAI_MODEL: "glm-4-flash"
