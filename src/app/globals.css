@@ -493,6 +493,239 @@ body::before {
   animation-delay: 0.6s;
 }
 
+/* ---------- 访客互动：点亮与送星 ---------- */
+.planet-sphere {
+  transition: filter 0.8s ease, box-shadow 0.8s ease;
+}
+
+.planet-halo,
+.planet-ring,
+.pet {
+  transition: filter 0.8s ease, box-shadow 0.8s ease, opacity 0.8s ease;
+}
+
+.planet-ambient {
+  position: absolute;
+  inset: 2%;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 46%,
+    rgba(255, 245, 199, 0.62) 0%,
+    rgba(255, 224, 157, 0.24) 42%,
+    rgba(255, 224, 157, 0) 72%
+  );
+  animation: ambientBreathe 3.4s ease-in-out infinite;
+}
+
+.planet-scene--lit .planet-halo {
+  opacity: 1;
+  filter: blur(24px);
+  animation: litHalo 3.2s ease-in-out infinite;
+}
+
+.planet-scene--lit .planet-sphere {
+  filter: brightness(1.12) saturate(1.08);
+  box-shadow:
+    inset -18px -22px 42px rgba(84, 62, 104, 0.18),
+    inset 14px 14px 34px rgba(255, 255, 255, 0.72),
+    0 0 42px rgba(255, 218, 139, 0.62),
+    0 30px 50px -18px rgba(90, 62, 115, 0.36);
+}
+
+.planet-scene--lit .planet-ring {
+  border-color: rgba(255, 216, 137, 0.95);
+  box-shadow: 0 0 30px rgba(255, 206, 112, 0.72);
+}
+
+.planet-scene--lit .spark {
+  color: #ffd377;
+  animation-duration: 1.8s;
+}
+
+.planet-scene--lit .pet {
+  filter:
+    drop-shadow(0 14px 16px rgba(120, 90, 140, 0.18))
+    drop-shadow(0 0 12px rgba(255, 220, 147, 0.65));
+}
+
+.gifted-star,
+.gift-star-flight {
+  position: absolute;
+  z-index: 7;
+  line-height: 1;
+  color: #ffd36f;
+  font-size: clamp(14px, 4.5vw, 22px);
+  text-shadow:
+    0 0 5px rgba(255, 255, 255, 0.95),
+    0 0 14px rgba(245, 190, 74, 0.85);
+  pointer-events: none;
+}
+
+.gifted-star {
+  animation: giftedStarTwinkle 3.2s var(--star-delay, 0s) ease-in-out infinite;
+}
+
+.gifted-star.is-new {
+  animation:
+    giftedStarLand 0.58s 0.9s both,
+    giftedStarTwinkle 3.2s 1.6s ease-in-out infinite;
+}
+
+.light-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.light-burst-ring {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 34%;
+  aspect-ratio: 1 / 1;
+  border: 2px solid rgba(255, 236, 178, 0.95);
+  border-radius: 50%;
+  box-shadow:
+    0 0 18px rgba(255, 218, 137, 0.8),
+    inset 0 0 18px rgba(255, 248, 218, 0.75);
+  animation: lightBurstRing 1.3s ease-out both;
+}
+
+.light-burst-particle {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  color: #ffe09a;
+  font-size: 18px;
+  opacity: 0;
+  text-shadow: 0 0 10px rgba(255, 205, 105, 0.95);
+  animation: lightBurstParticle 1.05s var(--burst-delay, 0s) ease-out both;
+}
+
+.gift-star-flight {
+  z-index: 9;
+  font-size: clamp(22px, 6vw, 30px);
+  animation: giftStarFly 1.15s cubic-bezier(0.22, 0.72, 0.28, 1) both;
+}
+
+@keyframes ambientBreathe {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes litHalo {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes lightBurstRing {
+  0% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(0.35);
+  }
+  70% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.35);
+  }
+}
+
+@keyframes lightBurstParticle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(var(--burst-x), var(--burst-y)) scale(0.2) rotate(80deg);
+  }
+}
+
+@keyframes giftStarFly {
+  0% {
+    opacity: 0;
+    transform: translate(170px, 110px) scale(0.45) rotate(-30deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  52% {
+    transform: translate(70px, -72px) scale(1.35) rotate(110deg);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.85) rotate(240deg);
+  }
+}
+
+@keyframes giftedStarLand {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--star-rotate, 0deg)) scale(0.25);
+  }
+  65% {
+    opacity: 1;
+    transform: rotate(var(--star-rotate, 0deg)) scale(1.45);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(var(--star-rotate, 0deg)) scale(1);
+  }
+}
+
+@keyframes giftedStarTwinkle {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: rotate(var(--star-rotate, 0deg)) scale(0.88);
+  }
+  50% {
+    opacity: 1;
+    transform: rotate(var(--star-rotate, 0deg)) scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .light-burst,
+  .gift-star-flight {
+    display: none;
+  }
+
+  .planet-ambient,
+  .planet-scene--lit .planet-halo {
+    animation: none;
+  }
+
+  .gifted-star.is-new {
+    animation: giftedStarTwinkle 3.2s ease-in-out infinite;
+  }
+}
+
 /* ---------- 星图大厅：星空散布 ---------- */
 .star-arena {
   background:
@@ -1515,30 +1748,6 @@ body::before {
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;
-}
-
-/* 背景音乐开关：播放时显示跳动的音柱 */
-.bgm-bars span {
-  transform-origin: bottom;
-  animation: bgmBar 1.05s ease-in-out infinite;
-}
-
-.bgm-bars span:nth-child(2) {
-  animation-delay: 0.16s;
-}
-
-.bgm-bars span:nth-child(3) {
-  animation-delay: 0.32s;
-}
-
-@keyframes bgmBar {
-  0%,
-  100% {
-    transform: scaleY(0.35);
-  }
-  50% {
-    transform: scaleY(1);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/api-client';
+import type { PlanetInteraction } from './PlanetScene';
 
 type Stats = { statsVisits: number; statsLights: number; statsStars: number };
 
@@ -9,6 +10,9 @@ type VisitorActionsProps = {
   planetId: string;
   inviteCode?: string;
   onStats?: (stats: Stats) => void;
+  onAction?: (action: PlanetInteraction) => void;
+  lit?: boolean;
+  giftedStars?: number;
 };
 
 const ACTIONS = [
@@ -17,7 +21,14 @@ const ACTIONS = [
   { key: 'FEED', label: '喂食', icon: '🍬', hint: '给宠物一点甜' },
 ] as const;
 
-export default function VisitorActions({ planetId, inviteCode, onStats }: VisitorActionsProps) {
+export default function VisitorActions({
+  planetId,
+  inviteCode,
+  onStats,
+  onAction,
+  lit = false,
+  giftedStars = 0,
+}: VisitorActionsProps) {
   const [pending, setPending] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [done, setDone] = useState<string[]>([]);
@@ -35,12 +46,13 @@ export default function VisitorActions({ planetId, inviteCode, onStats }: Visito
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || '互动失败了');
       onStats?.(data.stats);
+      onAction?.(action);
       setDone((prev) => [...prev, action]);
       setToast(
         action === 'LIGHT'
-          ? '星球亮了一点点，主人会看见的'
+          ? '星球已经亮起，这束光会替你留在这里'
           : action === 'STAR'
-            ? '一颗小星星已经挂在轨道上了'
+            ? '小星星飞进轨道，已经挂好了'
             : '宠物嚼了嚼，朝你眨了眨眼',
       );
     } catch (err) {
@@ -66,21 +78,43 @@ export default function VisitorActions({ planetId, inviteCode, onStats }: Visito
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        {ACTIONS.map((action) => (
-          <button
-            key={action.key}
-            type="button"
-            onClick={() => fire(action.key)}
-            disabled={pending !== null}
-            className="group rounded-2xl border border-white/90 bg-white/70 px-3 py-3 text-left transition hover:-translate-y-0.5 hover:bg-white disabled:opacity-60"
-          >
-            <span className="text-lg">{action.icon}</span>
-            <span className="mt-1 block text-[13px] font-medium text-[#57465f]">{action.label}</span>
-            <span className="mt-0.5 block text-[10px] text-[#b09ec0]">
-              {pending === action.key ? '正在送达…' : action.hint}
-            </span>
-          </button>
-        ))}
+        {ACTIONS.map((action) => {
+          const activated =
+            action.key === 'LIGHT'
+              ? lit
+              : action.key === 'STAR'
+                ? giftedStars > 0
+                : done.includes(action.key);
+          const sentCount = giftedStars;
+          const hint =
+            pending === action.key
+              ? '正在送达…'
+              : action.key === 'LIGHT' && activated
+                ? '已点亮 · 再送一束光'
+                : action.key === 'STAR' && activated
+                  ? `已送 ${sentCount} 颗 · 再送一颗`
+                  : action.hint;
+
+          return (
+            <button
+              key={action.key}
+              type="button"
+              onClick={() => fire(action.key)}
+              disabled={pending !== null}
+              className={`group rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5 disabled:opacity-60 ${
+                activated
+                  ? 'border-[#f0d49a] bg-[#fffaf0] shadow-[0_8px_22px_-16px_rgba(221,174,82,.9)] hover:bg-[#fffdf7]'
+                  : 'border-white/90 bg-white/70 hover:bg-white'
+              }`}
+            >
+              <span className="inline-block text-lg transition-transform group-hover:scale-110">
+                {action.icon}
+              </span>
+              <span className="mt-1 block text-[13px] font-medium text-[#57465f]">{action.label}</span>
+              <span className="mt-0.5 block text-[10px] text-[#b09ec0]">{hint}</span>
+            </button>
+          );
+        })}
 
         <button
           type="button"
@@ -93,7 +127,7 @@ export default function VisitorActions({ planetId, inviteCode, onStats }: Visito
         </button>
       </div>
 
-      <div className="mt-3 min-h-[18px] text-[11px] text-[#8b7a97]">
+      <div className="mt-3 min-h-[18px] text-[11px] text-[#8b7a97]" aria-live="polite">
         {toast || (done.length ? '你的痕迹已经留在 visits 里了' : ' ') }
       </div>
     </div>

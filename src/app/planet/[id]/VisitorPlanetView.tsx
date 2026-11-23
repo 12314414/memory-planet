@@ -6,7 +6,10 @@ import AddFriendButton from '@/components/AddFriendButton';
 import AiWelcomeBubble from '@/components/AiWelcomeBubble';
 import Guestbook from '@/components/Guestbook';
 import MemoryWall from '@/components/MemoryWall';
-import PlanetScene from '@/components/PlanetScene';
+import PlanetScene, {
+  type PlanetInteraction,
+  type PlanetPulse,
+} from '@/components/PlanetScene';
 import SiteHeader from '@/components/SiteHeader';
 import VisitorActions from '@/components/VisitorActions';
 import { apiFetch, appPath } from '@/lib/api-client';
@@ -30,6 +33,10 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
   const [error, setError] = useState<{ message: string; status: number } | null>(null);
   const [code, setCode] = useState('');
   const [stats, setStats] = useState({ statsVisits: 0, statsLights: 0, statsStars: 0 });
+  const [lit, setLit] = useState(false);
+  const [giftedStars, setGiftedStars] = useState(0);
+  const [pulse, setPulse] = useState<PlanetPulse | null>(null);
+  const [visualReady, setVisualReady] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,6 +65,40 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setVisualReady(false);
+    setPulse(null);
+    try {
+      const saved = window.localStorage.getItem(`memory-planet:visitor-gifts:${planetId}`);
+      const parsed = saved ? JSON.parse(saved) : null;
+      setLit(Boolean(parsed?.lit));
+      setGiftedStars(Math.min(12, Math.max(0, Number(parsed?.stars) || 0)));
+    } catch {
+      setLit(false);
+      setGiftedStars(0);
+    } finally {
+      setVisualReady(true);
+    }
+  }, [planetId]);
+
+  useEffect(() => {
+    if (!visualReady) return;
+    try {
+      window.localStorage.setItem(
+        `memory-planet:visitor-gifts:${planetId}`,
+        JSON.stringify({ lit, stars: giftedStars }),
+      );
+    } catch {
+      // 隐私模式下无法持久化时，保留当前页面的互动效果即可。
+    }
+  }, [visualReady, lit, giftedStars, planetId]);
+
+  const handleVisualAction = (action: PlanetInteraction) => {
+    setPulse({ action, id: Date.now() });
+    if (action === 'LIGHT') setLit(true);
+    if (action === 'STAR') setGiftedStars((count) => Math.min(12, count + 1));
+  };
 
   if (loading) {
     return (
@@ -164,7 +205,14 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
               <span className="chip">🛰️ {planet.ownerName} 的星球</span>
               <span className="text-[10px] uppercase tracking-[0.2em] text-[#b09ec0]">VISITOR VIEW</span>
             </div>
-            <PlanetScene mode="visitor" planet={planet} petProfile={planet.petProfile} />
+            <PlanetScene
+              mode="visitor"
+              planet={planet}
+              petProfile={planet.petProfile}
+              lit={lit}
+              giftedStars={giftedStars}
+              pulse={pulse}
+            />
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
               <span className="chip">只读访问 · 可以互动，不会改动回忆</span>
             </div>
@@ -188,6 +236,9 @@ export default function VisitorPlanetView({ planetId, inviteCode }: VisitorPlane
               planetId={planet.id}
               inviteCode={inviteCode}
               onStats={(next) => setStats(next)}
+              onAction={handleVisualAction}
+              lit={lit}
+              giftedStars={giftedStars}
             />
 
             <div className="grid grid-cols-3 gap-2.5">
