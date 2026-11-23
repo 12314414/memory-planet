@@ -815,17 +815,18 @@ export async function demoFetch(input: string, init?: RequestInit): Promise<Resp
             petName: body?.petName,
             style: body?.style,
           }),
-          signal: AbortSignal.timeout(25000),
+          signal: AbortSignal.timeout(60000),
         });
         const data = await upstream.json().catch(() => null);
         if (upstream.ok && data?.imageUrl) {
           return json({ imageUrl: data.imageUrl, fallback: false });
         }
+        return json({ imageUrl: '', fallback: true, reason: data?.reason ?? `proxy_http_${upstream.status}` });
       } catch {
         // 代理不可达：走剪影占位
       }
     }
-    return json({ imageUrl: '', fallback: true });
+    return json({ imageUrl: '', fallback: true, reason: 'proxy_unreachable' });
   }
 
   // 保存宠物虚拟形象（静态版存 localStorage）

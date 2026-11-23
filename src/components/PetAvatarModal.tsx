@@ -16,6 +16,20 @@ type PetAvatarModalProps = {
 const MAX_FILE = 2 * 1024 * 1024;
 const MAX_SIDE = 768;
 
+/** 失败原因码 → 人话 */
+const REASON_LABEL: Record<string, string> = {
+  api_key_missing: '代理未配置 API Key',
+  image_empty_or_too_large: '照片为空或过大',
+  image_format_invalid: '照片格式不支持',
+  upstream_timeout: 'AI 生成超时',
+  generate_http_401: 'API Key 无效',
+  generate_http_403: 'API Key 无权限',
+  generate_http_429: '调用太频繁或额度不足',
+  generate_no_result: 'AI 未返回图片',
+  proxy_unreachable: 'AI 代理服务不可达',
+  network_timeout: '网络超时或中断',
+};
+
 /** 压缩到最长边 768px 的 JPEG，减少上传给智谱的体积 */
 async function compress(file: File): Promise<string> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -73,6 +87,7 @@ export default function PetAvatarModal({
   const [style, setStyle] = useState<'q版' | '拟真'>('q版');
   const [result, setResult] = useState('');
   const [fallback, setFallback] = useState(false);
+  const [failReason, setFailReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   // 加载仪式：动画与接口"都完成"才揭晓
@@ -93,6 +108,7 @@ export default function PetAvatarModal({
     setStyle('q版');
     setResult('');
     setFallback(false);
+    setFailReason('');
     setLoading(false);
     setError('');
     setOverlayActive(false);
@@ -157,6 +173,7 @@ export default function PetAvatarModal({
     setLoading(true);
     setError('');
     setFallback(false);
+    setFailReason('');
     setResult('');
     resultRef.current = '';
     saveOkRef.current = false;
@@ -168,12 +185,13 @@ export default function PetAvatarModal({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageBase64: source, petName, style }),
-          signal: AbortSignal.timeout(20000),
+          signal: AbortSignal.timeout(65000),
         });
         const json = await res.json().catch(() => null);
 
         if (!res.ok || !json?.imageUrl) {
-          // AI 失败：展示内置剪影，不阻塞页面
+          // AI 失败：展示内置剪影，不阻塞页面；原因透出方便排查
+          setFailReason(String(json?.reason || (res.ok ? 'no_image' : `http_${res.status}`)));
           return 'fail';
         }
 
@@ -187,6 +205,7 @@ export default function PetAvatarModal({
         saveOkRef.current = saveRes.ok;
         return 'ok';
       } catch {
+        setFailReason('network_timeout');
         return 'fail';
       }
     })();
@@ -302,7 +321,8 @@ export default function PetAvatarModal({
 
         {fallback && (
           <p className="mt-3 rounded-xl bg-white/60 px-3 py-2 text-[11px] leading-relaxed text-[#a596b0]">
-            图片生成暂时不可用，已使用内置宠物剪影占位。不影响页面其他功能，稍后可以再试。
+            图片生成暂时不可用{failReason ? `（原因：${REASON_LABEL[failReason] || failReason}）` : ''}
+            ，已使用内置宠物剪影占位。不影响页面其他功能，稍后可以再试。
           </p>
         )}
         {error && <p className="mt-3 text-[11px] text-[#c26a86]">{error}</p>}
