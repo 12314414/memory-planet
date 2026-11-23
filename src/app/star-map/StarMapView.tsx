@@ -263,6 +263,15 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
     warpTo('这颗星球', `/planet/visit/${value}`);
   };
 
+  // 小星球是动态生成的，统一在容器上做事件委托，避免按钮失效
+  const openPlanetById = (event: React.MouseEvent<HTMLDivElement>) => {
+    const trigger = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-planet-id]');
+    if (!trigger) return;
+    const id = trigger.dataset.planetId;
+    const target = planets.find((item) => item.id === id);
+    if (target) setActivePlanet(target);
+  };
+
   return (
     <main className="relative min-h-screen">
       {/* 水彩星空底（先导片同款） */}
@@ -363,8 +372,11 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
             </div>
           </div>
 
-          {/* 散布的纸雕小星球（移动端自动流式排列） */}
-          <div className="max-sm:relative max-sm:mt-2 max-sm:flex max-sm:flex-wrap max-sm:justify-center max-sm:gap-5 sm:pointer-events-none sm:absolute sm:inset-0">
+          {/* 散布的纸雕小星球（移动端自动流式排列）；点击统一由容器事件委托处理 */}
+          <div
+            onClick={openPlanetById}
+            className="max-sm:relative max-sm:mt-2 max-sm:flex max-sm:flex-wrap max-sm:justify-center max-sm:gap-5 sm:pointer-events-none sm:absolute sm:inset-0"
+          >
             {loading ? (
               SMALL_POS.slice(0, 5).map((pos, i) => (
                 <span
@@ -387,7 +399,8 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActivePlanet(item)}
+                    type="button"
+                    data-planet-id={item.id}
                     className="small-planet-slot group absolute z-20 w-[60px] cursor-pointer outline-none sm:pointer-events-auto"
                     style={{
                       top: `${pos.top}%`,

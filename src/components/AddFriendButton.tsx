@@ -53,12 +53,12 @@ export default function AddFriendButton({ ownerId, ownerName }: AddFriendButtonP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'request', targetId: ownerId }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || '发送失败');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || '发送失败，请稍后再试');
       setStatus('pending_outgoing');
       setToast(`已向 ${ownerName} 发出好友申请，等待回应 🌟`);
     } catch (err) {
-      setToast(err instanceof Error ? err.message : '发送失败');
+      setToast(err instanceof Error ? err.message : '发送失败，请稍后再试');
     } finally {
       setBusy(false);
     }
@@ -103,7 +103,15 @@ export default function AddFriendButton({ ownerId, ownerName }: AddFriendButtonP
       >
         {busy ? '处理中…' : label.text}
       </button>
-      {toast && <p className="mt-2 text-[11px] text-[#8b7a97]">{toast}</p>}
+      {toast && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="mt-2 rounded-xl bg-[#fff7ea]/90 px-3 py-2 text-[11px] leading-relaxed text-[#8b7a97]"
+        >
+          {toast}
+        </p>
+      )}
     </div>
   );
 }
