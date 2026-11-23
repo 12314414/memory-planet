@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/api-client';
+import PlanetLoadingOverlay, { type LoadingOutcome } from '@/components/PlanetLoadingOverlay';
 
 type PetAvatarModalProps = {
   open: boolean;
@@ -74,6 +75,16 @@ export default function PetAvatarModal({
   const [fallback, setFallback] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // 加载仪式：动画与接口"都完成"才揭晓
+  const [overlayActive, setOverlayActive] = useState(false);
+  const [genTask, setGenTask] = useState<Promise<'ok' | 'fail'> | null>(null);
+  const settleRef = useRef<{ apiDone: boolean; animDone: boolean; outcome: 'ok' | 'fail' }>({
+    apiDone: false,
+    animDone: false,
+    outcome: 'ok',
+  });
+  const resultRef = useRef('');
+  const saveOkRef = useRef(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -84,6 +95,8 @@ export default function PetAvatarModal({
     setFallback(false);
     setLoading(false);
     setError('');
+    setOverlayActive(false);
+    setGenTask(null);
   }, [open]);
 
   useEffect(() => {
@@ -117,40 +130,74 @@ export default function PetAvatarModal({
     }
   };
 
+  /** 接口与动画都完成后统一揭晓 */
+  const trySettle = () => {
+    const s = settleRef.current;
+    if (!s.apiDone || !s.animDone) return;
+    setLoading(false);
+    setOverlayActive(false);
+    setGenTask(null);
+    if (s.outcome === 'ok' && resultRef.current) {
+      setResult(resultRef.current);
+      if (saveOkRef.current) onSaved(resultRef.current);
+    } else if (s.outcome === 'fail') {
+      setFallback(true);
+    }
+  };
+
+  const handleCeremonyFinish = (outcome: LoadingOutcome) => {
+    settleRef.current.animDone = true;
+    if (outcome !== 'skip') settleRef.current.outcome = outcome;
+    if (outcome === 'skip') setOverlayActive(false); // 放弃仪式，接口返回后直接揭晓
+    trySettle();
+  };
+
   const generate = async () => {
     if (!source || loading) return;
     setLoading(true);
     setError('');
     setFallback(false);
-    try {
-      const res = await apiFetch('/api/ai/image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: source, petName, style }),
-        signal: AbortSignal.timeout(20000),
-      });
-      const json = await res.json().catch(() => null);
+    setResult('');
+    resultRef.current = '';
+    saveOkRef.current = false;
+    settleRef.current = { apiDone: false, animDone: false, outcome: 'ok' };
 
-      if (!res.ok || !json?.imageUrl) {
-        // AI 失败：展示内置剪影，不阻塞页面
-        setFallback(true);
-        setResult('');
-        return;
+    const task = (async (): Promise<'ok' | 'fail'> => {
+      try {
+        const res = await apiFetch('/api/ai/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: source, petName, style }),
+          signal: AbortSignal.timeout(20000),
+        });
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok || !json?.imageUrl) {
+          // AI 失败：展示内置剪影，不阻塞页面
+          return 'fail';
+        }
+
+        resultRef.current = json.imageUrl;
+        const saveRes = await apiFetch('/api/planet/owner/avatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatarUrl: json.imageUrl }),
+        });
+        if (!saveRes.ok) setError('形象生成成功，但保存失败');
+        saveOkRef.current = saveRes.ok;
+        return 'ok';
+      } catch {
+        return 'fail';
       }
+    })();
 
-      setResult(json.imageUrl);
-      const saveRes = await apiFetch('/api/planet/owner/avatar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatarUrl: json.imageUrl }),
-      });
-      if (saveRes.ok) onSaved(json.imageUrl);
-      else setError('形象生成成功，但保存失败');
-    } catch {
-      setFallback(true);
-    } finally {
-      setLoading(false);
-    }
+    setGenTask(task);
+    setOverlayActive(true);
+    task.then((outcome) => {
+      settleRef.current.apiDone = true;
+      settleRef.current.outcome = outcome;
+      trySettle();
+    });
   };
 
   return (
@@ -274,6 +321,13 @@ export default function PetAvatarModal({
           </button>
         </div>
       </div>
+
+      <PlanetLoadingOverlay
+        active={overlayActive}
+        photoUrl={source || null}
+        task={genTask}
+        onFinish={handleCeremonyFinish}
+      />
     </div>
   );
 }

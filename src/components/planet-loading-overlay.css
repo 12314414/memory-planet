@@ -1,0 +1,405 @@
+/* ============================================================
+ * PlanetLoadingOverlay 样式（生成虚拟形象 · 星球加载仪式）
+ * 类名 pam- 前缀、keyframes 以 pam 开头，避免污染全局
+ * ============================================================ */
+
+.pam-overlay {
+  --pam-gold: #e9bd63;
+  --pam-lav: #c8a9e6;
+  --pam-ink: #5a4a63;
+  --pam-ink-mute: #b3a2bd;
+  --pam-serif: "Songti SC", "STSong", Georgia, serif;
+  --pam-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(252, 247, 244, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-family: var(--pam-sans);
+  color: var(--pam-ink);
+  -webkit-font-smoothing: antialiased;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.pam-overlay.pam-on {
+  opacity: 1;
+  pointer-events: auto;
+}
+.pam-overlay * {
+  box-sizing: border-box;
+}
+
+.pam-stars,
+.pam-fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.pam-stars { z-index: 0; }
+.pam-fx { z-index: 30; }
+
+.pam-scene {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 20px 54px;
+  width: 100%;
+  max-width: 520px;
+}
+.pam-deco {
+  letter-spacing: 10px;
+  color: var(--pam-lav);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.pam-deco span {
+  display: inline-block;
+  animation: pamTw 3.2s ease-in-out infinite;
+}
+.pam-deco span:nth-child(2) { animation-delay: 0.7s; }
+.pam-deco span:nth-child(3) { animation-delay: 1.4s; }
+
+.pam-scene h2 {
+  font-family: var(--pam-serif);
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: 0.08em;
+  margin: 0 0 5px;
+  text-align: center;
+  background: linear-gradient(100deg, #cf8fae 0%, #b79ae0 48%, #d9a3c6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: opacity 0.3s ease;
+}
+.pam-scene h2.pam-fade { opacity: 0; }
+.pam-sub {
+  font-size: 12px;
+  color: var(--pam-ink-mute);
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.08em;
+  transition: opacity 0.3s ease;
+}
+.pam-sub.pam-fade { opacity: 0; }
+
+.pam-orb {
+  position: relative;
+  width: 380px;
+  height: 380px;
+  margin: -4px auto 0;
+  flex: none;
+  cursor: pointer;
+}
+.pam-orbSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: pamBob 7.5s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+.pam-orb.pam-boop .pam-orbSvg {
+  animation: pamBob 7.5s ease-in-out infinite, pamBoop 0.6s cubic-bezier(0.3, 1.6, 0.4, 1);
+}
+.pam-arc { transition: stroke-dashoffset 0.3s ease; }
+.pam-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pamTw 3.4s ease-in-out infinite;
+}
+.pam-spark:nth-child(2n) { animation-duration: 4.6s; animation-delay: 0.9s; }
+.pam-spark:nth-child(3n) { animation-duration: 5.4s; animation-delay: 1.7s; }
+.pam-bloom { opacity: 0; }
+.pam-bloom.pam-go { opacity: 1; }
+.pam-bloom.pam-go .pam-spark2 {
+  animation: pamBloomKf 2.1s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+.pam-spark2 {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+
+.pam-cat { opacity: 0; transition: opacity 0.25s ease; }
+.pam-cat.pam-pop { opacity: 1; }
+.pam-cat.pam-pop .pam-catInner {
+  animation: pamCatPop 0.7s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.pam-catInner { transform-box: fill-box; transform-origin: 50% 88%; }
+.pam-cat .pam-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: pamBreathe 3.4s ease-in-out infinite;
+}
+.pam-cat .pam-tail {
+  transform-box: fill-box;
+  transform-origin: 8% 92%;
+  animation: pamWag 2.6s ease-in-out infinite;
+}
+.pam-cat .pam-head {
+  transform-box: fill-box;
+  transform-origin: 50% 78%;
+  transition: transform 0.4s cubic-bezier(0.3, 1, 0.4, 1);
+}
+.pam-cat .pam-earL,
+.pam-cat .pam-earR { transform-box: fill-box; transform-origin: 50% 100%; }
+.pam-cat.pam-pop .pam-earL { animation: pamEarTwitch 1s ease-in-out 0.45s; }
+.pam-cat.pam-pop .pam-earR { animation: pamEarTwitch 1s ease-in-out 0.68s; }
+.pam-paw { opacity: 0; animation: pamPawIn 0.55s ease forwards; }
+
+.pam-photo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 136px;
+  height: 136px;
+  transform: translate(-50%, -50%) scale(0.45) translateY(66px);
+  opacity: 0;
+  transition: transform 0.95s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.55s ease;
+  border-radius: 18px;
+  background: #fffdfb;
+  padding: 6px;
+  box-shadow: 0 20px 40px -18px rgba(150, 120, 170, 0.45);
+  will-change: transform, opacity;
+}
+.pam-photo.pam-in {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(-2.5deg);
+}
+.pam-photo.pam-starify {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.1) rotate(16deg);
+  transition: transform 0.6s cubic-bezier(0.55, 0, 0.75, 0), opacity 0.55s ease 0.1s;
+}
+.pam-photo.pam-wobble { animation: pamWobble 0.62s ease-in-out; }
+.pam-photoInner {
+  width: 100%;
+  height: 100%;
+  border-radius: 13px;
+  overflow: hidden;
+  position: relative;
+  background: #fde8d8;
+}
+.pam-photoInner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pam-scan {
+  position: absolute;
+  inset: 6px;
+  border-radius: 13px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.pam-scan.pam-on { opacity: 1; }
+.pam-scan::before {
+  content: "";
+  position: absolute;
+  left: -30%;
+  right: -30%;
+  top: -50%;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 240, 194, 0) 0%,
+    rgba(255, 226, 160, 0.7) 58%,
+    rgba(255, 255, 255, 0.92) 96%,
+    rgba(255, 240, 194, 0) 100%
+  );
+}
+.pam-scan.pam-on::before {
+  animation: pamSweep 1.4s cubic-bezier(0.4, 0, 0.5, 1) 2;
+}
+
+.pam-corners {
+  position: absolute;
+  inset: 2px;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.pam-corners.pam-on { opacity: 1; }
+.pam-corners i {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(233, 189, 99, 0.85);
+  border-radius: 4px;
+}
+.pam-corners i:nth-child(1) { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+.pam-corners i:nth-child(2) { right: -1px; top: -1px; border-left: 0; border-bottom: 0; }
+.pam-corners i:nth-child(3) { left: -1px; bottom: -1px; border-right: 0; border-top: 0; }
+.pam-corners i:nth-child(4) { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+
+.pam-status {
+  text-align: center;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  margin-top: -6px;
+}
+.pam-status.pam-hide {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+.pam-cap {
+  font-family: var(--pam-serif);
+  font-size: 14.5px;
+  color: #8d7799;
+  margin: 2px 0 12px;
+  min-height: 22px;
+  letter-spacing: 0.05em;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.pam-cap.pam-swap { opacity: 0; transform: translateY(5px); }
+
+.pam-steps {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  font-size: 11px;
+  margin-bottom: 10px;
+  letter-spacing: 0.04em;
+}
+.pam-step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #c3b3cc;
+  transition: color 0.4s ease;
+}
+.pam-step b {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #e8dded;
+  transition: all 0.4s ease;
+}
+.pam-step.pam-active { color: #b08bc9; }
+.pam-step.pam-active b {
+  background: var(--pam-lav);
+  box-shadow: 0 0 0 3px rgba(200, 169, 230, 0.22);
+  animation: pamPulse 1.4s ease-in-out infinite;
+}
+.pam-step.pam-done { color: #b79a6a; }
+.pam-step.pam-done b { background: var(--pam-gold); }
+
+.pam-privacy {
+  font-size: 10.5px;
+  color: #b3a2bd;
+  margin: 0;
+  letter-spacing: 0.03em;
+}
+
+.pam-skip {
+  position: fixed;
+  right: 26px;
+  bottom: 22px;
+  z-index: 60;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: #a596b0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(150, 120, 170, 0.25);
+  padding: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.pam-skip.pam-on { opacity: 1; pointer-events: auto; }
+.pam-skip:hover { color: #b08bc9; }
+
+/* ---------- 动画 ---------- */
+@keyframes pamPop {
+  0% { transform: scale(0.9) }
+  55% { transform: scale(1.06) }
+  100% { transform: scale(1) }
+}
+@keyframes pamBob {
+  0%, 100% { transform: translateY(-4px) }
+  50% { transform: translateY(6px) }
+}
+@keyframes pamBoop {
+  0% { transform: scale(1) }
+  40% { transform: scale(1.05) }
+  100% { transform: scale(1) }
+}
+@keyframes pamTw {
+  0%, 100% { opacity: 0.45; transform: scale(0.82) }
+  50% { opacity: 1; transform: scale(1.06) }
+}
+@keyframes pamPulse {
+  0%, 100% { opacity: 1 }
+  50% { opacity: 0.35 }
+}
+@keyframes pamSweep {
+  0% { top: -50% }
+  100% { top: 104% }
+}
+@keyframes pamBloomKf {
+  0% { opacity: 0; transform: scale(0.1) }
+  35% { opacity: 1 }
+  70% { opacity: 0.9; transform: scale(1.5) }
+  100% { opacity: 0; transform: scale(2.2) }
+}
+@keyframes pamWobble {
+  0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(-2.5deg) }
+  25% { transform: translate(-52.4%, -50%) scale(0.988) rotate(-3.8deg) }
+  62% { transform: translate(-47.8%, -50%) scale(1.012) rotate(-1.2deg) }
+}
+@keyframes pamCatPop {
+  0% { transform: scale(0.12) rotate(-16deg) }
+  55% { transform: scale(1.18) rotate(5deg) }
+  100% { transform: scale(1) rotate(0) }
+}
+@keyframes pamWag {
+  0%, 100% { transform: rotate(-4deg) }
+  50% { transform: rotate(8deg) }
+}
+@keyframes pamBreathe {
+  0%, 100% { transform: scaleY(1) }
+  50% { transform: scaleY(1.04) }
+}
+@keyframes pamEarTwitch {
+  0%, 100% { transform: rotate(0) }
+  28% { transform: rotate(-12deg) }
+  58% { transform: rotate(4deg) }
+}
+@keyframes pamPawIn {
+  0% { opacity: 0 }
+  100% { opacity: 0.92 }
+}
+
+/* ---------- 响应式 / 无障碍 ---------- */
+@media (max-width: 760px) {
+  .pam-orb { width: 320px; height: 320px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pam-orbSvg,
+  .pam-spark,
+  .pam-step.pam-active b,
+  .pam-cat .pam-tail,
+  .pam-cat .pam-body,
+  .pam-deco span {
+    animation: none;
+  }
+  .pam-photo { transition: opacity 0.3s ease; }
+  .pam-cat.pam-pop .pam-catInner { animation: none; }
+}
