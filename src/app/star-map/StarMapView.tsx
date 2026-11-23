@@ -9,6 +9,7 @@ import FriendsPanel from '@/components/FriendsPanel';
 import Intro from '@/components/Intro';
 import PaperClouds from '@/components/PaperClouds';
 import PaperPlanet from '@/components/PaperPlanet';
+import PlanetDetailModal from '@/components/PlanetDetailModal';
 import PlanetScene from '@/components/PlanetScene';
 import WarpTransition from '@/components/WarpTransition';
 import { apiFetch, appPath, DEMO_MODE } from '@/lib/api-client';
@@ -209,6 +210,7 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
   const [showInvite, setShowInvite] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
   const [showFilm, setShowFilm] = useState(false);
+  const [activePlanet, setActivePlanet] = useState<PublicPlanetDTO | null>(null);
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState('');
 
@@ -385,7 +387,7 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
                 return (
                   <button
                     key={item.id}
-                    onClick={() => warpTo(item.name, `/planet/${item.id}`)}
+                    onClick={() => setActivePlanet(item)}
                     className="small-planet-slot group absolute z-20 w-[60px] cursor-pointer outline-none sm:pointer-events-auto"
                     style={{
                       top: `${pos.top}%`,
@@ -507,6 +509,19 @@ export default function StarMapView({ nickname, planet, pet, recentVisitors }: S
       {/* 先导片（与首页开场同一支影片） */}
       {showFilm && (
         <Intro duration={INTRO_DURATION} skippable onFinish={() => setShowFilm(false)} />
+      )}
+
+      {/* 星球详情弹层 */}
+      {activePlanet && (
+        <PlanetDetailModal
+          planet={activePlanet}
+          onClose={() => setActivePlanet(null)}
+          onEnter={() => {
+            const target = activePlanet;
+            setActivePlanet(null);
+            warpTo(target.name, `/planet/${target.id}`);
+          }}
+        />
       )}
 
       {/* 穿越转场（视频） */}

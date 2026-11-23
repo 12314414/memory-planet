@@ -599,6 +599,63 @@ body::before {
   }
 }
 
+/* ---------- 星球详情弹窗 ---------- */
+.planet-modal-mask {
+  animation: planetModalMaskIn 0.3s ease both;
+}
+
+/* 淡入 + 缩放，弹性回弹曲线 */
+.planet-modal-panel {
+  animation: planetModalPanelIn 0.46s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center;
+}
+
+.planet-modal-title {
+  background-image: linear-gradient(120deg, #8b5cf6 0%, #ec4899 48%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.planet-modal-btn {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.planet-modal-btn:hover {
+  transform: translateY(-2px);
+}
+
+.planet-modal-btn:active {
+  transform: translateY(0);
+}
+
+@keyframes planetModalMaskIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes planetModalPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planet-modal-mask,
+  .planet-modal-panel {
+    animation-duration: 0.01ms;
+  }
+}
+
 /* ---------- 回忆卡 ---------- */
 .memory-card {
   position: relative;
